@@ -20,4 +20,19 @@
         app:layout_constraintTop_toTopOf="parent"
         app:srcCompat="@drawable/settings2" />
 
+    <Button
+        android:id="@+id/bService"
+        android:layout_width="187dp"
+        android:layout_height="67dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginLeft="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginRight="8dp"
+        android:layout_marginBottom="8dp"
+        android:text="Start ..."
+        android:onClick="startMonitoring"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
 </android.support.constraint.ConstraintLayout>

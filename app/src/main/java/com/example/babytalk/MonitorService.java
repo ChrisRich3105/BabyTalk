@@ -19,6 +19,7 @@ public class MonitorService extends Service implements SensorEventListener {
 
     private Sensor sensor;
     private SensorManager sensorManager;
+    private double filteredAcceleration; // Just a PT1 filter
 
 
     public int onStartCommand(Intent intent, int flags, int startId) {
@@ -80,9 +81,13 @@ public class MonitorService extends Service implements SensorEventListener {
     @Override
     public void onSensorChanged(SensorEvent event) {
         if (event.sensor.getType()==Sensor.TYPE_LINEAR_ACCELERATION){
-            Log.i(LOG_TAG,"AccX: "+event.values[0]);
-            Log.i(LOG_TAG,"AccY: "+event.values[1]);
-            Log.i(LOG_TAG,"AccZ: "+event.values[2]);
+            //Log.i(LOG_TAG,"AccX: "+event.values[0]);
+            //Log.i(LOG_TAG,"AccY: "+event.values[1]);
+            //Log.i(LOG_TAG,"AccZ: "+event.values[2]);
+            // Calculate vectorsum
+            double accelerationSum = Math.sqrt(event.values[0]*event.values[0]+event.values[1]*event.values[1]+event.values[2]*event.values[2]);
+            filteredAcceleration = 0.95 * filteredAcceleration + 0.05 * accelerationSum; // No idea about timeconstant yet
+            Log.i(LOG_TAG,"Acceleration: "+filteredAcceleration);
         }
     }
 }

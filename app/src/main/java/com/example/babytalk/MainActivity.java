@@ -42,7 +42,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void goToSettings(View view){
-        startActivity(new Intent(MainActivity.this, configuration.class));
+        startActivity(new Intent(MainActivity.this, Configuration.class));
     }
 
     public void startMonitoring(View view){

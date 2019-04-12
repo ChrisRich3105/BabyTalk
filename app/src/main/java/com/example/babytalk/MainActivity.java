@@ -36,7 +36,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        bService=(findViewById(R.id.bService));
+        bService=(findViewById(R.id.bActivate));
 
         ActivityCompat.requestPermissions(this, permissions, REQUEST_RECORD_AUDIO_PERMISSION);
     }
@@ -49,12 +49,14 @@ public class MainActivity extends AppCompatActivity {
         if(!isMonitoring) {
             startService(new Intent(this, MonitorService.class));
             isMonitoring=true;
-            bService.setText("Stop monitoring ...");
+            bService.setText("Stop");
+            bService.setBackgroundResource(R.drawable.stopshape);
             // TODO Check if Service started successfully
         }else{
             stopService(new Intent(this,MonitorService.class));
             isMonitoring=false;
-            bService.setText("Start monitoring ...");
+            bService.setText("Activate");
+            bService.setBackgroundResource(R.drawable.activateshape);
         }
     }
 }

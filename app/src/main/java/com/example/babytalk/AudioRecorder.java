@@ -44,7 +44,7 @@ import android.util.Log;
                 track = new AudioTrack(AudioManager.STREAM_MUSIC, 8000,
                         AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT, N*10, AudioTrack.MODE_STREAM);
                 recorder.startRecording();
-                track.play();
+                //track.play();
 
                 /*
                  * Loops until something outside of this thread stops it.

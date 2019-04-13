@@ -6,6 +6,7 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.app.TaskStackBuilder;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -41,7 +42,6 @@ public class MonitorService extends Service implements SensorEventListener {
     private SensorManager sensorManager;
     private double filteredAcceleration; // Just a PT1 filter
 
-
     public int onStartCommand(Intent intent, int flags, int startId) {
 
         Log.i(LOG_TAG, "Service onStart");
@@ -51,6 +51,51 @@ public class MonitorService extends Service implements SensorEventListener {
 
         return Service.START_STICKY;
     }
+
+    public IBinder onBind(Intent arg0) {
+        Log.i(LOG_TAG, "Service onBind");
+        return null;
+    }
+
+    public void onDestroy() {
+        isRunning = false;
+        stopMonitorAcceleration();
+        audioRecorder.close();
+        Log.i(LOG_TAG, "Service destroyed");
+    }
+
+    // start service in foreground with a notification so it is not killed when memory is needed
+    // https://stackoverflow.com/questions/44913884/android-notification-not-showing-on-api-26
+    public void addNotificationForeground(){
+        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            NotificationChannel mChannel = new NotificationChannel(
+                    CHANNEL_ID, CHANNEL_NAME, NotificationManager.IMPORTANCE_HIGH);
+            notificationManager.createNotificationChannel(mChannel);
+        }
+
+        // Create an Intent to get back to own activity https://developer.android.com/training/notify-user/navigation
+        Intent resultIntent = new Intent(this, MainActivity.class);
+        // Create the TaskStackBuilder and add the intent, which inflates the back stack
+        TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
+        stackBuilder.addNextIntentWithParentStack(resultIntent);
+        // Get the PendingIntent containing the entire back stack
+        PendingIntent resultPendingIntent = stackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT);
+
+        NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setSmallIcon(R.drawable.icon)
+                .setContentTitle(getResources().getString(R.string.notification_title))
+                .setContentText(getResources().getString(R.string.notification_message))
+                .setVibrate(new long[]{100, 250})
+                .setLights(Color.YELLOW, 500, 5000)
+                .setAutoCancel(true)
+                .setColor(ContextCompat.getColor(this, R.color.colorPrimary))
+                .setContentIntent(resultPendingIntent);
+
+        startForeground(ONGOING_NOTIFICATION_ID, mBuilder.build());
+    }
+
     private void monitorVoiceLevel(){
         audioRecorder=new AudioRecorder();
         audioRecorder.start();
@@ -80,43 +125,6 @@ public class MonitorService extends Service implements SensorEventListener {
         backgroundThread.start();
     }
 
-    public IBinder onBind(Intent arg0) {
-        Log.i(LOG_TAG, "Service onBind");
-        return null;
-    }
-
-    public void onDestroy() {
-        isRunning = false;
-        stopMonitorAcceleration();
-        //backgroundThread.interrupt();
-        audioRecorder.close();
-        Log.i(LOG_TAG, "Service destroyed");
-    }
-
-    // start service in foreground with a notification so it is not killed when memory is needed
-    // https://stackoverflow.com/questions/44913884/android-notification-not-showing-on-api-26
-    public void addNotificationForeground(){
-        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-
-        int importance = NotificationManager.IMPORTANCE_HIGH;
-
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-            NotificationChannel mChannel = new NotificationChannel(
-                    CHANNEL_ID, CHANNEL_NAME, importance);
-            notificationManager.createNotificationChannel(mChannel);
-        }
-        NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setSmallIcon(R.drawable.icon)
-                .setContentTitle(getResources().getString(R.string.notification_title))
-                .setContentText(getResources().getString(R.string.notification_message))
-                .setVibrate(new long[]{100, 250})
-                .setLights(Color.YELLOW, 500, 5000)
-                .setAutoCancel(true)
-                .setColor(ContextCompat.getColor(this, R.color.colorPrimary));
-
-        startForeground(ONGOING_NOTIFICATION_ID, mBuilder.build());
-    }
-
     public void monitorAcceleration(){
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         sensor = sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
@@ -124,7 +132,6 @@ public class MonitorService extends Service implements SensorEventListener {
     }
 
     public void stopMonitorAcceleration(){
-
         sensorManager.unregisterListener(this);
     }
 

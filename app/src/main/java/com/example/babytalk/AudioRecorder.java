@@ -52,7 +52,6 @@ import android.util.Log;
                  */
                 while(!stopped)
                 {
-                    Log.i("Map", "Writing new data to buffer");
                     short[] buffer = buffers[ix++ % buffers.length];
                     N = recorder.read(buffer,0,buffer.length);
                     for (short s : buffer)

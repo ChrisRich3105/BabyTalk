@@ -1,13 +1,17 @@
 package com.example.babytalk;
 
+import android.Manifest;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.net.Uri;
 import android.os.IBinder;
+import android.support.v4.app.ActivityCompat;
 import android.util.Log;
 
 public class MonitorService extends Service implements SensorEventListener {
@@ -16,6 +20,7 @@ public class MonitorService extends Service implements SensorEventListener {
 
     private boolean isRunning = false;
     private AudioRecorder audioRecorder = null;
+    private boolean calling = false;
 
     private Sensor sensor;
     private SensorManager sensorManager;
@@ -25,11 +30,15 @@ public class MonitorService extends Service implements SensorEventListener {
     public int onStartCommand(Intent intent, int flags, int startId) {
 
         Log.i(LOG_TAG, "Service onStart");
-        audioRecorder=new AudioRecorder();
-        audioRecorder.start();
 
+        monitorVoiceLevel();
         monitorAcceleration();
 
+        return Service.START_STICKY;
+    }
+    private void monitorVoiceLevel(){
+        audioRecorder=new AudioRecorder();
+        audioRecorder.start();
         isRunning = true;
         backgroundThread=new Thread(new Runnable() {
             public void run() {
@@ -38,6 +47,13 @@ public class MonitorService extends Service implements SensorEventListener {
                     try {
                         Thread.sleep(1000);
                         Log.i(LOG_TAG, "Current maximum amplitude " + audioRecorder.getMaxAmplitude());
+                        // TODO readFromConfig
+                        if(audioRecorder.getMaxAmplitude() > 10000 && !calling){
+                            Log.i(LOG_TAG, "Perform call");
+                            calling = true;
+                            performPhoneCall();
+
+                        }
                     } catch (InterruptedException e) {
                         Log.i(LOG_TAG, "Thread InterruptedException");
                     }
@@ -46,7 +62,6 @@ public class MonitorService extends Service implements SensorEventListener {
             }
         });
         backgroundThread.start();
-        return Service.START_STICKY;
     }
 
     public IBinder onBind(Intent arg0) {
@@ -89,6 +104,17 @@ public class MonitorService extends Service implements SensorEventListener {
             filteredAcceleration = 0.95 * filteredAcceleration + 0.05 * accelerationSum; // No idea about timeconstant yet
             Log.i(LOG_TAG,"Acceleration: "+filteredAcceleration);
         }
+    }
+    private void performPhoneCall(){
+        Intent phoneIntent = new Intent(Intent.ACTION_CALL,Uri.parse("tel:042747457"));
+        // TODO readNumberfromConfig
+        phoneIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        phoneIntent.addFlags(Intent.FLAG_FROM_BACKGROUND);
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED) {
+                Log.i(LOG_TAG,"Permission missing");
+            return;
+        }
+        startActivity(phoneIntent);
     }
 }
 

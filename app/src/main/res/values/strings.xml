@@ -1,4 +1,7 @@
 <resources>
     <string name="app_name">BabyTalk</string>
     <string name="configuration">Configuration</string>
+    <string name="notification_title">BabyTalk</string>
+    <string name="notification_message">Monitoring baby ...</string>
+    <string name="ticker_text">Where is this going?</string>
 </resources>

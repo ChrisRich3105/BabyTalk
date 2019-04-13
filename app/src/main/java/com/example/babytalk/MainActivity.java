@@ -1,6 +1,9 @@
 package com.example.babytalk;
 
 import android.Manifest;
+import android.app.Notification;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.support.v4.app.ActivityCompat;
@@ -13,6 +16,7 @@ import android.widget.Button;
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
     private static final int PERMISSION_REQUEST_CODE = 1;
+
     private boolean isMonitoring=false;
     private Button bService;
 
@@ -40,6 +44,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         bService=(findViewById(R.id.bActivate));
         requestCallPermission();
+        // TODO got error for the first time granting it/same structure as telephone
         ActivityCompat.requestPermissions(this, permissions, REQUEST_RECORD_AUDIO_PERMISSION);
     }
 
@@ -77,7 +82,6 @@ public class MainActivity extends AppCompatActivity {
             } else {
                 // request the permission
                 ActivityCompat.requestPermissions(this,new String[]{Manifest.permission.CALL_PHONE},PERMISSION_REQUEST_CODE);
-
             }
         }
     }

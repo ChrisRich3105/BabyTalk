@@ -1,10 +1,15 @@
 package com.example.babytalk;
 
 import android.Manifest;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -12,12 +17,22 @@ import android.hardware.SensorManager;
 import android.net.Uri;
 import android.os.IBinder;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.NotificationCompat;
+import android.support.v4.content.ContextCompat;
 import android.util.Log;
 
-public class MonitorService extends Service implements SensorEventListener {
-    private static final String LOG_TAG = "MonitorService";
-    private Thread backgroundThread;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 
+public class MonitorService extends Service implements SensorEventListener {
+    // TODO comment variables and classes
+    private static final String LOG_TAG = "MonitorService";
+    private static final int ONGOING_NOTIFICATION_ID = 100;
+    private static final String CHANNEL_ID = "100";
+    private static final String CHANNEL_NAME = "BabyTalk";
+
+    private Thread backgroundThread;
     private boolean isRunning = false;
     private AudioRecorder audioRecorder = null;
     private boolean calling = false;
@@ -30,7 +45,7 @@ public class MonitorService extends Service implements SensorEventListener {
     public int onStartCommand(Intent intent, int flags, int startId) {
 
         Log.i(LOG_TAG, "Service onStart");
-
+        addNotificationForeground();
         monitorVoiceLevel();
         monitorAcceleration();
 
@@ -52,6 +67,7 @@ public class MonitorService extends Service implements SensorEventListener {
                             Log.i(LOG_TAG, "Perform call");
                             calling = true;
                             performPhoneCall();
+                            // TODO subscribe to call finished event
 
                         }
                     } catch (InterruptedException e) {
@@ -77,12 +93,34 @@ public class MonitorService extends Service implements SensorEventListener {
         Log.i(LOG_TAG, "Service destroyed");
     }
 
-    public void monitorAcceleration(){
+    // start service in foreground with a notification so it is not killed when memory is needed
+    // https://stackoverflow.com/questions/44913884/android-notification-not-showing-on-api-26
+    public void addNotificationForeground(){
+        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
 
+        int importance = NotificationManager.IMPORTANCE_HIGH;
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            NotificationChannel mChannel = new NotificationChannel(
+                    CHANNEL_ID, CHANNEL_NAME, importance);
+            notificationManager.createNotificationChannel(mChannel);
+        }
+        NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setSmallIcon(R.drawable.icon)
+                .setContentTitle(getResources().getString(R.string.notification_title))
+                .setContentText(getResources().getString(R.string.notification_message))
+                .setVibrate(new long[]{100, 250})
+                .setLights(Color.YELLOW, 500, 5000)
+                .setAutoCancel(true)
+                .setColor(ContextCompat.getColor(this, R.color.colorPrimary));
+
+        startForeground(ONGOING_NOTIFICATION_ID, mBuilder.build());
+    }
+
+    public void monitorAcceleration(){
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         sensor = sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
         sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL);
-
     }
 
     public void stopMonitorAcceleration(){
@@ -107,7 +145,7 @@ public class MonitorService extends Service implements SensorEventListener {
     }
     private void performPhoneCall(){
         Intent phoneIntent = new Intent(Intent.ACTION_CALL,Uri.parse("tel:042747457"));
-        // TODO readNumberfromConfig
+        // TODO readNumberfromConfig and activate LOUDSPEAKER?
         phoneIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         phoneIntent.addFlags(Intent.FLAG_FROM_BACKGROUND);
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED) {

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <SwitchPreference
+        android:title="Activate speakerphone"
+        android:key="@string/preference_speakerphone_key"
+        android:defaultValue="true"
+        android:summary="Speakerphone will be active during call" />
+
+    <SwitchPreference
+        android:title="Activate motion detection"
+        android:key="@string/preference_motion_key"
+        android:defaultValue="true"
+        android:summary="Motion will be monitored and can trigger a call" />
+
+    <SwitchPreference
+        android:title="Pause after start"
+        android:key="@string/preference_pause_key"
+        android:defaultValue="true"
+        android:summary="Define if the monitoring should be paused after start so that you can leave the room." />
+
+    <EditTextPreference
+        android:defaultValue="30"
+        android:key="@string/preference_pause_value_key"
+        android:title="Pause time"
+        android:inputType="numberDecimal"
+        android:digits="0123456789" />
+
+    <EditTextPreference
+        android:defaultValue=""
+        android:key="@string/preference_phonenumber_key"
+        android:title="Phone number"
+        android:inputType="numberDecimal"
+        android:digits="0123456789" />
+
+
+
+</PreferenceScreen>

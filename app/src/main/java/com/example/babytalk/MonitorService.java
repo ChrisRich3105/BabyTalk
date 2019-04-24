@@ -9,6 +9,7 @@ import android.app.Service;
 import android.app.TaskStackBuilder;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.hardware.Sensor;
@@ -17,6 +18,7 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.net.Uri;
 import android.os.IBinder;
+import android.preference.PreferenceManager;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.content.ContextCompat;
@@ -147,11 +149,14 @@ public class MonitorService extends Service implements SensorEventListener {
             // Calculate vectorsum
             double accelerationSum = Math.sqrt(event.values[0]*event.values[0]+event.values[1]*event.values[1]+event.values[2]*event.values[2]);
             filteredAcceleration = 0.95 * filteredAcceleration + 0.05 * accelerationSum; // No idea about timeconstant yet
-            Log.i(LOG_TAG,"Acceleration: "+filteredAcceleration);
+            //Log.i(LOG_TAG,"Acceleration: "+filteredAcceleration);
         }
     }
     private void performPhoneCall(){
-        Intent phoneIntent = new Intent(Intent.ACTION_CALL,Uri.parse("tel:042747457"));
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        String phoneNumber = prefs.getString(getString(R.string.preference_phonenumber_key), null);
+        Log.i(LOG_TAG,"Phone number: "+phoneNumber);
+        Intent phoneIntent = new Intent(Intent.ACTION_CALL,Uri.parse("tel:"+phoneNumber));
         // TODO readNumberfromConfig and activate LOUDSPEAKER?
         phoneIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         phoneIntent.addFlags(Intent.FLAG_FROM_BACKGROUND);

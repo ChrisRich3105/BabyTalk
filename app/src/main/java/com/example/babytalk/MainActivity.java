@@ -49,10 +49,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void goToSettings(View view){
-        startActivity(new Intent(MainActivity.this, Configuration.class));
+        startActivity(new Intent(MainActivity.this, SettingsActivity.class));
     }
 
     public void startMonitoring(View view){
+        // Problem here: When app is closed, service is still running but isMonitoring will be reset.
         if(!isMonitoring) {
             startService(new Intent(this, MonitorService.class));
             isMonitoring=true;

@@ -4,4 +4,10 @@
     <string name="notification_title">BabyTalk</string>
     <string name="notification_message">Monitoring baby ...</string>
     <string name="ticker_text">Where is this going?</string>
+
+    <string name="preference_speakerphone_key">speakerPhoneSetting</string>
+    <string name="preference_motion_key">motionDetectionSetting</string>
+    <string name="preference_phonenumber_key">phoneNumberSetting</string>
+    <string name="preference_pause_key">pauseSetting</string>
+    <string name="preference_pause_value_key">pauseValueSetting</string>
 </resources>

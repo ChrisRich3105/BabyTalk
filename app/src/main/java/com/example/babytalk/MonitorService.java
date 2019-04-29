@@ -1,7 +1,6 @@
 package com.example.babytalk;
 
 import android.Manifest;
-import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -23,10 +22,8 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.content.ContextCompat;
 import android.util.Log;
-
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Locale;
+import android.widget.ProgressBar;
+import android.widget.RemoteViews;
 
 public class MonitorService extends Service implements SensorEventListener {
     // TODO comment variables and classes
@@ -102,15 +99,31 @@ public class MonitorService extends Service implements SensorEventListener {
         audioRecorder=new AudioRecorder();
         audioRecorder.start();
         isRunning = true;
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        final int motionTriggerLevel = prefs.getInt(getString(R.string.preference_motion_value_key), 0);
+        final int pauseTime = prefs.getInt(getString(R.string.preference_pause_value_key), 0);
+        final boolean pauseActivated = prefs.getBoolean(getString(R.string.preference_pause_key),false);
+        final boolean motionTriggerActivated = prefs.getBoolean(getString(R.string.preference_motion_key),false);
+
         backgroundThread=new Thread(new Runnable() {
             public void run() {
                 Log.i(LOG_TAG, "Service running");
+                if (pauseActivated)
+                    try {
+                        Thread.sleep(pauseTime * 1000);
+                    } catch (InterruptedException e) {
+                        Log.i(LOG_TAG, "Thread InterruptedException");
+                    }
+                // TODO maybe add a timer showing the pause time on the main activity?
+                Log.i(LOG_TAG, "Pause time exceeded. Start monitoring.");
                 while (isRunning){
                     try {
                         Thread.sleep(1000);
                         Log.i(LOG_TAG, "Current maximum amplitude " + audioRecorder.getMaxAmplitude());
-                        // TODO readFromConfig
-                        if(audioRecorder.getMaxAmplitude() > 10000 && !calling){
+                        /* TODO readFromConfig - comment CRE: not read noise level setting from config but from main activity, as it is not included in the preferences page but it´s kind of a "live-setting" */
+                        if( (audioRecorder.getMaxAmplitude() > 10000)
+                                || (motionTriggerActivated && (getMotion() > 0.2 + ((double)motionTriggerLevel / 50))
+                            ) && !calling){
                             Log.i(LOG_TAG, "Perform call");
                             calling = true;
                             performPhoneCall();
@@ -149,15 +162,19 @@ public class MonitorService extends Service implements SensorEventListener {
             // Calculate vectorsum
             double accelerationSum = Math.sqrt(event.values[0]*event.values[0]+event.values[1]*event.values[1]+event.values[2]*event.values[2]);
             filteredAcceleration = 0.95 * filteredAcceleration + 0.05 * accelerationSum; // No idea about timeconstant yet
-            //Log.i(LOG_TAG,"Acceleration: "+filteredAcceleration);
+            Log.i(LOG_TAG,"Acceleration: "+filteredAcceleration);
         }
     }
+    private double getMotion(){
+        return filteredAcceleration;
+    }
+
     private void performPhoneCall(){
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
         String phoneNumber = prefs.getString(getString(R.string.preference_phonenumber_key), null);
         Log.i(LOG_TAG,"Phone number: "+phoneNumber);
         Intent phoneIntent = new Intent(Intent.ACTION_CALL,Uri.parse("tel:"+phoneNumber));
-        // TODO readNumberfromConfig and activate LOUDSPEAKER?
+        // TODO activate LOUDSPEAKER?
         phoneIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         phoneIntent.addFlags(Intent.FLAG_FROM_BACKGROUND);
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED) {

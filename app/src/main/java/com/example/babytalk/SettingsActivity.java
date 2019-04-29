@@ -1,12 +1,11 @@
 package com.example.babytalk;
 
-import android.app.ActionBar;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceManager;
-import android.view.MenuItem;
 import android.widget.Toast;
 
 public class SettingsActivity extends PreferenceActivity
@@ -25,13 +24,47 @@ public class SettingsActivity extends PreferenceActivity
         //noinspection deprecation
         Preference pauseValuePref = findPreference(getString(R.string.preference_pause_value_key));
         pauseValuePref.setOnPreferenceChangeListener(this);
+        //noinspection deprecation
+        Preference accelerationValuePref = findPreference(getString(R.string.preference_motion_value_key));
+        accelerationValuePref.setOnPreferenceChangeListener(this);
+        //noinspection deprecation
+        Preference pausePref = findPreference(getString(R.string.preference_pause_key));
+        pausePref.setOnPreferenceChangeListener(this);
+        //noinspection deprecation
+        Preference accelerationPref = findPreference(getString(R.string.preference_motion_key));
+        accelerationPref.setOnPreferenceChangeListener(this);
 
 
         SharedPreferences sharedPrefs = PreferenceManager.getDefaultSharedPreferences(this);
         String savedPhoneNumber = sharedPrefs.getString(phoneNumberPref.getKey(), "");
-        onPreferenceChange(phoneNumberPref, savedPhoneNumber);
-        String savedPauseValue = sharedPrefs.getString(pauseValuePref.getKey(), "");
-        onPreferenceChange(pauseValuePref, savedPauseValue);
+        if (!savedPhoneNumber.isEmpty())
+            onPreferenceChange(phoneNumberPref, savedPhoneNumber);
+        String savedPauseValue = String.valueOf(sharedPrefs.getInt(pauseValuePref.getKey(), 30));
+        if (!savedPauseValue.isEmpty())
+            onPreferenceChange(pauseValuePref, savedPauseValue);
+        String accelerationValue = String.valueOf(sharedPrefs.getInt(accelerationValuePref.getKey(), 50));
+        if (!accelerationValue.isEmpty())
+            onPreferenceChange(accelerationValuePref, accelerationValue);
+
+
+        boolean pauseActivated = sharedPrefs.getBoolean(getString(R.string.preference_pause_key),false);
+        if(!pauseActivated) {
+            findPreference(getString(R.string.preference_pause_value_key)).setEnabled(false);
+            findPreference(getString(R.string.preference_pause_value_key)).setShouldDisableView(true);
+        }
+        else {
+            findPreference(getString(R.string.preference_pause_value_key)).setEnabled(true);
+            findPreference(getString(R.string.preference_pause_value_key)).setShouldDisableView(false);
+        }
+        boolean motionActivated = sharedPrefs.getBoolean(getString(R.string.preference_motion_key),false);
+        if(!motionActivated) {
+            findPreference(getString(R.string.preference_motion_value_key)).setEnabled(false);
+            findPreference(getString(R.string.preference_motion_value_key)).setShouldDisableView(true);
+        }
+        else {
+            findPreference(getString(R.string.preference_motion_value_key)).setEnabled(true);
+            findPreference(getString(R.string.preference_motion_value_key)).setShouldDisableView(false);
+        }
 
     }
 
@@ -39,15 +72,38 @@ public class SettingsActivity extends PreferenceActivity
     public boolean onPreferenceChange(Preference preference, Object value) {
         if(preference.getKey()==getString(R.string.preference_phonenumber_key))
             preference.setSummary("Phone number to be called when monitoring triggers.\nCurrent setting: "+value.toString());
-        else if(preference.getKey()==getString(R.string.preference_pause_value_key)) {
-            if (Integer.parseInt(value.toString()) >= 100) {
-                Toast.makeText(this, "Pause time must be below 100s", Toast.LENGTH_SHORT).show();
-                return false;
-            }
+        else if(preference.getKey()==getString(R.string.preference_pause_value_key))
             preference.setSummary("Time in seconds to pause monitoring after start.\nCurrent setting: " + value.toString() + "s");
+        else if(preference.getKey()==getString(R.string.preference_motion_value_key))
+            preference.setSummary("Motion level to activate call. Lower values mean more sensitive triggering.\nCurrent setting: " + value.toString() + "%");
+        else if(preference.getKey()==getString(R.string.preference_pause_key)){
+            if(!Boolean.parseBoolean(value.toString())) {
+                findPreference(getString(R.string.preference_pause_value_key)).setEnabled(false);
+                findPreference(getString(R.string.preference_pause_value_key)).setShouldDisableView(true);
+            }
+            else {
+                findPreference(getString(R.string.preference_pause_value_key)).setEnabled(true);
+                findPreference(getString(R.string.preference_pause_value_key)).setShouldDisableView(false);
+                finish();
+                overridePendingTransition(0, 0);
+                startActivity(getIntent());
+                overridePendingTransition(0, 0);
+            }
         }
-        else
-            preference.setSummary(value.toString());
+        else if(preference.getKey()==getString(R.string.preference_motion_key)){
+            if(!Boolean.parseBoolean(value.toString())) {
+                findPreference(getString(R.string.preference_motion_value_key)).setEnabled(false);
+                findPreference(getString(R.string.preference_motion_value_key)).setShouldDisableView(true);
+            }
+            else {
+                findPreference(getString(R.string.preference_motion_value_key)).setEnabled(true);
+                findPreference(getString(R.string.preference_motion_value_key)).setShouldDisableView(false);
+                finish();
+                overridePendingTransition(0, 0);
+                startActivity(getIntent());
+                overridePendingTransition(0, 0);
+            }
+        }
 
         return true;
     }

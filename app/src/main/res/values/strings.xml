@@ -10,4 +10,5 @@
     <string name="preference_phonenumber_key">phoneNumberSetting</string>
     <string name="preference_pause_key">pauseSetting</string>
     <string name="preference_pause_value_key">pauseValueSetting</string>
+    <string name="preference_motion_value_key">motionValueSetting</string>
 </resources>

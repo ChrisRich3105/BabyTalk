@@ -13,26 +13,36 @@
         android:defaultValue="true"
         android:summary="Motion will be monitored and can trigger a call" />
 
+    <com.example.babytalk.SeekBarPreference
+        android:key="@string/preference_motion_value_key"
+        android:dialogMessage="Motion trigger level"
+        android:title="Motion trigger level"
+        android:summary="Motion level to activate call. Lower values mean more sensitive triggering.\nCurrent setting: 50%"
+        android:text="%"
+        android:defaultValue="50"
+        />
+
     <SwitchPreference
         android:title="Pause after start"
         android:key="@string/preference_pause_key"
         android:defaultValue="true"
         android:summary="Define if the monitoring should be paused after start so that you can leave the room." />
 
-    <EditTextPreference
+    <com.example.babytalk.SeekBarPreference
         android:defaultValue="30"
         android:key="@string/preference_pause_value_key"
         android:title="Pause time"
-        android:inputType="numberDecimal"
-        android:digits="0123456789" />
+        android:summary="Time in seconds to pause monitoring after start.\nCurrent setting: 30s"
+        android:text="s"
+        />
 
     <EditTextPreference
         android:defaultValue=""
         android:key="@string/preference_phonenumber_key"
         android:title="Phone number"
+        android:summary="hone number to be called when monitoring triggers.\nCurrent setting: -"
         android:inputType="numberDecimal"
         android:digits="0123456789" />
-
 
 
 </PreferenceScreen>

@@ -14,6 +14,12 @@
         android:summary="The app will make a video call through whats app" />
 
     <SwitchPreference
+        android:title="Silent phone"
+        android:key="@string/preference_silent_mode_key"
+        android:defaultValue="false"
+        android:summary="Set's phone to silent mode when monitoring is started. When stopped phone is set to normal mode." />
+
+    <SwitchPreference
         android:title="Activate motion detection"
         android:key="@string/preference_motion_key"
         android:defaultValue="true"

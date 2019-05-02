@@ -6,6 +6,7 @@
     <string name="ticker_text">Where is this going?</string>
 
     <string name="preference_speakerphone_key">speakerPhoneSetting</string>
+    <string name="preference_silent_mode_key">silentModeSetting</string>
     <string name="preference_video_call_key">videoCallSetting</string>
     <string name="preference_motion_key">motionDetectionSetting</string>
     <string name="preference_phonenumber_key">phoneNumberSetting</string>

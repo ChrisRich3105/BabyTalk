@@ -30,6 +30,8 @@ import android.util.Log;
 import android.widget.ProgressBar;
 import android.widget.RemoteViews;
 
+import java.lang.reflect.Method;
+
 public class MonitorService extends Service implements SensorEventListener {
     // TODO comment variables and classes
     private static final String LOG_TAG = "MonitorService";
@@ -50,6 +52,7 @@ public class MonitorService extends Service implements SensorEventListener {
     // read phone state
     private TelephonyManager telephonyManager;
     private PhoneStateListener phoneStateListener;
+    private AudioManager audioManager;
 
     public int onStartCommand(Intent intent, int flags, int startId) {
 
@@ -73,6 +76,10 @@ public class MonitorService extends Service implements SensorEventListener {
         isRunning = false;
         stopMonitorAcceleration();
         audioRecorder.close();
+        if (prefs.getBoolean(getString(R.string.preference_silent_mode_key), false) == true) {
+            audioManager.setRingerMode(AudioManager.RINGER_MODE_NORMAL);
+        }
+
         Log.i(LOG_TAG, "Service destroyed");
     }
 
@@ -110,7 +117,12 @@ public class MonitorService extends Service implements SensorEventListener {
 
     private void addPhoneStateListener() {
         telephonyManager = (TelephonyManager) this.getSystemService(Context.TELEPHONY_SERVICE);
-        final AudioManager audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+        audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+
+        if (prefs.getBoolean(getString(R.string.preference_silent_mode_key), false) == true) {
+            // set to silent mode
+            audioManager.setRingerMode(AudioManager.RINGER_MODE_SILENT);
+        }
         phoneStateListener = new PhoneStateListener() {
             @Override
             public void onCallStateChanged(int state, String incomingNumber) {
@@ -139,6 +151,7 @@ public class MonitorService extends Service implements SensorEventListener {
                     }
                 } else if (state == TelephonyManager.CALL_STATE_RINGING) {
                     Log.i(LOG_TAG, "onCallStateChanged - CALL_STATE_RINGING");
+                    // TODO maybe hang up on incoming calls as option
                 }
             }
         };
@@ -226,8 +239,8 @@ public class MonitorService extends Service implements SensorEventListener {
         //TODO try with skype
         if (prefs.getBoolean(getString(R.string.preference_video_call_key), false) == true) {
             // perform video call over whats app from https://stackoverflow.com/questions/51070748/place-a-whatsapp-video-call
-
-            /*Cursor cursor = getContentResolver ()
+            /*
+            Cursor cursor = getContentResolver ()
                     .query (
                             ContactsContract.Data.CONTENT_URI,
                             new String [] { ContactsContract.Data._ID },

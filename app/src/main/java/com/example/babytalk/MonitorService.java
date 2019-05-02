@@ -15,12 +15,15 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.media.AudioManager;
 import android.net.Uri;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.content.ContextCompat;
+import android.telephony.PhoneStateListener;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.widget.ProgressBar;
 import android.widget.RemoteViews;
@@ -40,13 +43,21 @@ public class MonitorService extends Service implements SensorEventListener {
     private Sensor sensor;
     private SensorManager sensorManager;
     private double filteredAcceleration; // Just a PT1 filter
+    private SharedPreferences prefs;
+
+    // read phone state
+    private TelephonyManager telephonyManager;
+    private PhoneStateListener phoneStateListener;
 
     public int onStartCommand(Intent intent, int flags, int startId) {
 
         Log.i(LOG_TAG, "Service onStart");
+        prefs = PreferenceManager.getDefaultSharedPreferences(this);
+
         addNotificationForeground();
         monitorVoiceLevel();
         monitorAcceleration();
+        addPhoneStateListener();
 
         return Service.START_STICKY;
     }
@@ -95,11 +106,46 @@ public class MonitorService extends Service implements SensorEventListener {
         startForeground(ONGOING_NOTIFICATION_ID, mBuilder.build());
     }
 
+    private void addPhoneStateListener(){
+        telephonyManager=(TelephonyManager)this.getSystemService(Context.TELEPHONY_SERVICE);
+        final AudioManager audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+        phoneStateListener=new PhoneStateListener(){
+            @Override public void onCallStateChanged(int state, String incomingNumber){
+                Log.i(LOG_TAG,"onCallStateChanged");
+                if (state == TelephonyManager.CALL_STATE_IDLE) {
+                    Log.i(LOG_TAG,"onCallStateChanged - IDLE");
+                    audioRecorder.setMaxAmplitudeZero();
+                    calling=false;
+                    audioManager.setSpeakerphoneOn(false); // to have the timeout with next cycle
+                    try {
+                        Thread.sleep(1000); // There is a notification tone after that on my mobile - suppress first second
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }else if( state == TelephonyManager.CALL_STATE_OFFHOOK){
+                    Log.i(LOG_TAG,"onCallStateChanged - CALL_STATE_OFFHOOK");
+                    if(prefs.getBoolean(getString(R.string.preference_speakerphone_key),false)== true){
+                        try {
+                            Thread.sleep(2000); // There is a notification tone after that on my mobile - suppress first second
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                        audioManager.setSpeakerphoneOn(true);
+                        // TODO set loudspeaker level to zero that the noise is not transfered to the baby or should talking be possible?
+                    }
+                }else if(state == TelephonyManager.CALL_STATE_RINGING){
+                    Log.i(LOG_TAG,"onCallStateChanged - CALL_STATE_RINGING");
+                }
+            }
+        };
+        telephonyManager.listen(phoneStateListener,PhoneStateListener.LISTEN_CALL_STATE);
+    }
+
     private void monitorVoiceLevel(){
         audioRecorder=new AudioRecorder();
         audioRecorder.start();
         isRunning = true;
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+
         final int motionTriggerLevel = prefs.getInt(getString(R.string.preference_motion_value_key), 0);
         final int pauseTime = prefs.getInt(getString(R.string.preference_pause_value_key), 0);
         final boolean pauseActivated = prefs.getBoolean(getString(R.string.preference_pause_key),false);
@@ -121,14 +167,11 @@ public class MonitorService extends Service implements SensorEventListener {
                         Thread.sleep(1000);
                         Log.i(LOG_TAG, "Current maximum amplitude " + audioRecorder.getMaxAmplitude());
                         /* TODO readFromConfig - comment CRE: not read noise level setting from config but from main activity, as it is not included in the preferences page but it´s kind of a "live-setting" */
-                        if( (audioRecorder.getMaxAmplitude() > 10000)
-                                || (motionTriggerActivated && (getMotion() > 0.2 + ((double)motionTriggerLevel / 50))
-                            ) && !calling){
+                        if( ((audioRecorder.getMaxAmplitude() > 10000)
+                                || (motionTriggerActivated && (getMotion() > 0.2 + ((double)motionTriggerLevel / 50)))) && !calling){
                             Log.i(LOG_TAG, "Perform call");
                             calling = true;
                             performPhoneCall();
-                            // TODO subscribe to call finished event
-
                         }
                     } catch (InterruptedException e) {
                         Log.i(LOG_TAG, "Thread InterruptedException");
@@ -174,7 +217,6 @@ public class MonitorService extends Service implements SensorEventListener {
         String phoneNumber = prefs.getString(getString(R.string.preference_phonenumber_key), null);
         Log.i(LOG_TAG,"Phone number: "+phoneNumber);
         Intent phoneIntent = new Intent(Intent.ACTION_CALL,Uri.parse("tel:"+phoneNumber));
-        // TODO activate LOUDSPEAKER?
         phoneIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         phoneIntent.addFlags(Intent.FLAG_FROM_BACKGROUND);
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED) {

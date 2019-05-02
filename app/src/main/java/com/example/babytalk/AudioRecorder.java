@@ -92,4 +92,6 @@ import android.util.Log;
             return maxAmplitude;
         }
 
+        public void setMaxAmplitudeZero(){ maxAmplitude=0; }
+
     }

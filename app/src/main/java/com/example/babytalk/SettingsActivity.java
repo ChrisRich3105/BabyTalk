@@ -1,12 +1,10 @@
 package com.example.babytalk;
 
-import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceManager;
-import android.widget.Toast;
 
 public class SettingsActivity extends PreferenceActivity
         implements Preference.OnPreferenceChangeListener {
@@ -78,7 +76,7 @@ public class SettingsActivity extends PreferenceActivity
             preference.setSummary("Motion level to activate call. Lower values mean more sensitive triggering.\nCurrent setting: " + value.toString() + "%");
         else if(preference.getKey()==getString(R.string.preference_pause_key)){
             if(!Boolean.parseBoolean(value.toString())) {
-                findPreference(getString(R.string.preference_pause_value_key)).setEnabled(false);
+                findPreference(getString(R.string.preference_pause_value_key)).setEnabled(false); //TODO method is marked as deprecated
                 findPreference(getString(R.string.preference_pause_value_key)).setShouldDisableView(true);
             }
             else {

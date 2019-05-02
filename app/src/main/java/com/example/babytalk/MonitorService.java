@@ -10,6 +10,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
 import android.graphics.Color;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -19,6 +20,7 @@ import android.media.AudioManager;
 import android.net.Uri;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
+import android.provider.ContactsContract;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.content.ContextCompat;
@@ -76,7 +78,7 @@ public class MonitorService extends Service implements SensorEventListener {
 
     // start service in foreground with a notification so it is not killed when memory is needed
     // https://stackoverflow.com/questions/44913884/android-notification-not-showing-on-api-26
-    public void addNotificationForeground(){
+    public void addNotificationForeground() {
         NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
 
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
@@ -106,52 +108,54 @@ public class MonitorService extends Service implements SensorEventListener {
         startForeground(ONGOING_NOTIFICATION_ID, mBuilder.build());
     }
 
-    private void addPhoneStateListener(){
-        telephonyManager=(TelephonyManager)this.getSystemService(Context.TELEPHONY_SERVICE);
+    private void addPhoneStateListener() {
+        telephonyManager = (TelephonyManager) this.getSystemService(Context.TELEPHONY_SERVICE);
         final AudioManager audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
-        phoneStateListener=new PhoneStateListener(){
-            @Override public void onCallStateChanged(int state, String incomingNumber){
-                Log.i(LOG_TAG,"onCallStateChanged");
+        phoneStateListener = new PhoneStateListener() {
+            @Override
+            public void onCallStateChanged(int state, String incomingNumber) {
+                Log.i(LOG_TAG, "onCallStateChanged");
                 if (state == TelephonyManager.CALL_STATE_IDLE) {
-                    Log.i(LOG_TAG,"onCallStateChanged - IDLE");
+                    Log.i(LOG_TAG, "onCallStateChanged - IDLE");
                     audioRecorder.setMaxAmplitudeZero();
-                    calling=false;
+                    calling = false;
+
                     audioManager.setSpeakerphoneOn(false); // to have the timeout with next cycle
                     try {
                         Thread.sleep(1000); // There is a notification tone after that on my mobile - suppress first second
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
-                }else if( state == TelephonyManager.CALL_STATE_OFFHOOK){
-                    Log.i(LOG_TAG,"onCallStateChanged - CALL_STATE_OFFHOOK");
-                    if(prefs.getBoolean(getString(R.string.preference_speakerphone_key),false)== true){
+                } else if (state == TelephonyManager.CALL_STATE_OFFHOOK) {
+                    Log.i(LOG_TAG, "onCallStateChanged - CALL_STATE_OFFHOOK");
+                    if (prefs.getBoolean(getString(R.string.preference_speakerphone_key), false) == true) {
                         try {
-                            Thread.sleep(2000); // There is a notification tone after that on my mobile - suppress first second
+                            Thread.sleep(1000); // There is a notification tone after that on my mobile - suppress first second
                         } catch (InterruptedException e) {
                             e.printStackTrace();
                         }
                         audioManager.setSpeakerphoneOn(true);
-                        // TODO set loudspeaker level to zero that the noise is not transfered to the baby or should talking be possible?
+                        // TODO? set loudspeaker level to zero that the noise is not transfered to the baby or should talking be possible?
                     }
-                }else if(state == TelephonyManager.CALL_STATE_RINGING){
-                    Log.i(LOG_TAG,"onCallStateChanged - CALL_STATE_RINGING");
+                } else if (state == TelephonyManager.CALL_STATE_RINGING) {
+                    Log.i(LOG_TAG, "onCallStateChanged - CALL_STATE_RINGING");
                 }
             }
         };
-        telephonyManager.listen(phoneStateListener,PhoneStateListener.LISTEN_CALL_STATE);
+        telephonyManager.listen(phoneStateListener, PhoneStateListener.LISTEN_CALL_STATE);
     }
 
-    private void monitorVoiceLevel(){
-        audioRecorder=new AudioRecorder();
+    private void monitorVoiceLevel() {
+        audioRecorder = new AudioRecorder();
         audioRecorder.start();
         isRunning = true;
 
         final int motionTriggerLevel = prefs.getInt(getString(R.string.preference_motion_value_key), 0);
         final int pauseTime = prefs.getInt(getString(R.string.preference_pause_value_key), 0);
-        final boolean pauseActivated = prefs.getBoolean(getString(R.string.preference_pause_key),false);
-        final boolean motionTriggerActivated = prefs.getBoolean(getString(R.string.preference_motion_key),false);
+        final boolean pauseActivated = prefs.getBoolean(getString(R.string.preference_pause_key), false);
+        final boolean motionTriggerActivated = prefs.getBoolean(getString(R.string.preference_motion_key), false);
 
-        backgroundThread=new Thread(new Runnable() {
+        backgroundThread = new Thread(new Runnable() {
             public void run() {
                 Log.i(LOG_TAG, "Service running");
                 if (pauseActivated)
@@ -162,13 +166,13 @@ public class MonitorService extends Service implements SensorEventListener {
                     }
                 // TODO maybe add a timer showing the pause time on the main activity?
                 Log.i(LOG_TAG, "Pause time exceeded. Start monitoring.");
-                while (isRunning){
+                while (isRunning) {
                     try {
                         Thread.sleep(1000);
                         Log.i(LOG_TAG, "Current maximum amplitude " + audioRecorder.getMaxAmplitude());
                         /* TODO readFromConfig - comment CRE: not read noise level setting from config but from main activity, as it is not included in the preferences page but it´s kind of a "live-setting" */
-                        if( ((audioRecorder.getMaxAmplitude() > 10000)
-                                || (motionTriggerActivated && (getMotion() > 0.2 + ((double)motionTriggerLevel / 50)))) && !calling){
+                        if (((audioRecorder.getMaxAmplitude() > 10000)
+                                || (motionTriggerActivated && (getMotion() > 0.2 + ((double) motionTriggerLevel / 50)))) && !calling) {
                             Log.i(LOG_TAG, "Perform call");
                             calling = true;
                             performPhoneCall();
@@ -183,47 +187,103 @@ public class MonitorService extends Service implements SensorEventListener {
         backgroundThread.start();
     }
 
-    public void monitorAcceleration(){
+    public void monitorAcceleration() {
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         sensor = sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
         sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL);
     }
 
-    public void stopMonitorAcceleration(){
+    public void stopMonitorAcceleration() {
         sensorManager.unregisterListener(this);
     }
 
     @Override
     public void onAccuracyChanged(Sensor arg0, int arg1) {
     }
+
     @Override
     public void onSensorChanged(SensorEvent event) {
-        if (event.sensor.getType()==Sensor.TYPE_LINEAR_ACCELERATION){
+        if (event.sensor.getType() == Sensor.TYPE_LINEAR_ACCELERATION) {
             //Log.i(LOG_TAG,"AccX: "+event.values[0]);
             //Log.i(LOG_TAG,"AccY: "+event.values[1]);
             //Log.i(LOG_TAG,"AccZ: "+event.values[2]);
             // Calculate vectorsum
-            double accelerationSum = Math.sqrt(event.values[0]*event.values[0]+event.values[1]*event.values[1]+event.values[2]*event.values[2]);
+            double accelerationSum = Math.sqrt(event.values[0] * event.values[0] + event.values[1] * event.values[1] + event.values[2] * event.values[2]);
             filteredAcceleration = 0.95 * filteredAcceleration + 0.05 * accelerationSum; // No idea about timeconstant yet
-            Log.i(LOG_TAG,"Acceleration: "+filteredAcceleration);
+            Log.i(LOG_TAG, "Acceleration: " + filteredAcceleration);
         }
     }
-    private double getMotion(){
+
+    private double getMotion() {
         return filteredAcceleration;
     }
 
-    private void performPhoneCall(){
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+    private void performPhoneCall() {
+        prefs = PreferenceManager.getDefaultSharedPreferences(this);
         String phoneNumber = prefs.getString(getString(R.string.preference_phonenumber_key), null);
-        Log.i(LOG_TAG,"Phone number: "+phoneNumber);
-        Intent phoneIntent = new Intent(Intent.ACTION_CALL,Uri.parse("tel:"+phoneNumber));
-        phoneIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        phoneIntent.addFlags(Intent.FLAG_FROM_BACKGROUND);
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED) {
-                Log.i(LOG_TAG,"Permission missing");
-            return;
+        Log.i(LOG_TAG, "Phone number: " + phoneNumber);
+
+        //TODO try with skype
+        if (prefs.getBoolean(getString(R.string.preference_video_call_key), false) == true) {
+            // perform video call over whats app from https://stackoverflow.com/questions/51070748/place-a-whatsapp-video-call
+
+            /*Cursor cursor = getContentResolver ()
+                    .query (
+                            ContactsContract.Data.CONTENT_URI,
+                            new String [] { ContactsContract.Data._ID },
+                            ContactsContract.RawContacts.ACCOUNT_TYPE + " = 'com.whatsapp' " +
+                                  //  "AND " + ContactsContract.Data.MIMETYPE + " = 'vnd.android.cursor.item/vnd.com.whatsapp.video.call' " +
+                                    "AND " + ContactsContract.CommonDataKinds.Phone.NUMBER + " LIKE '%" + phoneNumber + "%'",
+                            null,
+                            ContactsContract.Contacts.DISPLAY_NAME
+                    );
+
+            if (cursor != null) {
+                long id = 0;
+                if(cursor.moveToNext()){
+                    id = cursor.getLong (cursor.getColumnIndex (ContactsContract.Data._ID));
+                    if (!cursor.isClosed ()) {
+                        cursor.close ();
+                    }
+                    Log.i(LOG_TAG, "Found id: "+ String.valueOf(id));
+                }else{
+                    Log.i(LOG_TAG, "Can't move to first");
+                }
+                Log.i(LOG_TAG, "CALL WA");
+                Intent phoneIntent = new Intent ();
+                phoneIntent.setAction (Intent.ACTION_VIEW);
+                phoneIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                phoneIntent.addFlags(Intent.FLAG_FROM_BACKGROUND);
+                phoneIntent.setDataAndType (Uri.parse ("content://com.android.contacts/data/" + id), "vnd.android.cursor.item/vnd.com.whatsapp.voip.call");
+                phoneIntent.setPackage ("com.whatsapp");
+
+                startActivity (phoneIntent);
+            }else{
+                //TODO add Toast/Info
+                Log.i(LOG_TAG, "Nothing found in cursor");
+            }*/
+            Intent phoneIntent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + phoneNumber));
+            phoneIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            phoneIntent.addFlags(Intent.FLAG_FROM_BACKGROUND);
+            phoneIntent.putExtra("videocall", true);
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED) {
+                Log.i(LOG_TAG, "Permission missing");
+                return;
+            }
+            startActivity(phoneIntent);
+
+        } else {
+            // perform standard call over whats app
+            Intent phoneIntent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + phoneNumber));
+            phoneIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            phoneIntent.addFlags(Intent.FLAG_FROM_BACKGROUND);
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED) {
+                Log.i(LOG_TAG, "Permission missing");
+                return;
+            }
+            startActivity(phoneIntent);
         }
-        startActivity(phoneIntent);
+
     }
 }
 

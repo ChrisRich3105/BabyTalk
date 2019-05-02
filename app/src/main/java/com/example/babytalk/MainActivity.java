@@ -24,7 +24,7 @@ public class MainActivity extends AppCompatActivity {
 
     // Requesting permission to RECORD_AUDIO
     private boolean permissionToRecordAccepted = false;
-    private String [] permissions = {Manifest.permission.RECORD_AUDIO};
+    private String [] permissions = {Manifest.permission.RECORD_AUDIO,Manifest.permission.READ_CONTACTS};
 
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {

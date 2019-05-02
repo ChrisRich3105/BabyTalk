@@ -8,6 +8,12 @@
         android:summary="Speakerphone will be active during call" />
 
     <SwitchPreference
+        android:title="Activate video call"
+        android:key="@string/preference_video_call_key"
+        android:defaultValue="false"
+        android:summary="The app will make a video call through whats app" />
+
+    <SwitchPreference
         android:title="Activate motion detection"
         android:key="@string/preference_motion_key"
         android:defaultValue="true"

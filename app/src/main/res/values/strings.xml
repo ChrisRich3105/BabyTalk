@@ -4,6 +4,7 @@
     <string name="notification_title">BabyTalk</string>
     <string name="notification_message">Monitoring baby ...</string>
     <string name="ticker_text">Where is this going?</string>
+    <string name="broadcast_sound_level_URL">com.example.babytalk.Audiolevel</string>
 
     <string name="preference_speakerphone_key">speakerPhoneSetting</string>
     <string name="preference_silent_mode_key">silentModeSetting</string>

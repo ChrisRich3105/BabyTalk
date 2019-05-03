@@ -1,11 +1,15 @@
 package com.example.babytalk;
 
+import android.content.Intent;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioRecord;
 import android.media.AudioTrack;
 import android.media.MediaRecorder;
 import android.util.Log;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /*
      * Thread to manage live recording/playback of voice input from the device's microphone.
@@ -19,6 +23,7 @@ import android.util.Log;
         private short[][]   buffers  = new short[256][160];
         private int ix = 0;
         private int maxAmplitude=0;
+        private int publicAvg=0;
 
         /**
          * Give the thread high priority so that it's not canceled unexpectedly, and start it
@@ -53,13 +58,26 @@ import android.util.Log;
                 while(!stopped)
                 {
                     short[] buffer = buffers[ix++ % buffers.length];
+                    List<Short> movingAvg = new ArrayList<>();
+
                     N = recorder.read(buffer,0,buffer.length);
+
                     for (short s : buffer)
                     {
-                        if (Math.abs(s) > maxAmplitude)
-                        {
-                            maxAmplitude = Math.abs(s);
+                        movingAvg.add(s);
+                        if(movingAvg.size()>100){
+                            movingAvg.remove(0); // first element
+                            // build sum here
+                            int currentAvg=0;
+                            for(short sample : movingAvg)
+                                currentAvg += Math.abs(sample);
+                            publicAvg=currentAvg/100;
+                            if ((currentAvg/100) > maxAmplitude)
+                            {
+                                maxAmplitude = currentAvg/100;
+                            }
                         }
+
                     }
                     track.write(buffer, 0, buffer.length);
                 }
@@ -90,6 +108,10 @@ import android.util.Log;
 
         public double getMaxAmplitude() {
             return maxAmplitude;
+        }
+
+        public double getCurrentAmplitudeAvg() {
+            return publicAvg;
         }
 
         public void setMaxAmplitudeZero(){ maxAmplitude=0; }

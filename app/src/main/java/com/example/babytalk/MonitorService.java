@@ -39,10 +39,14 @@ public class MonitorService extends Service implements SensorEventListener {
     private static final String CHANNEL_ID = "100";
     private static final String CHANNEL_NAME = "BabyTalk";
 
+    private static boolean monitoringActive=false;
+    private static AudioRecorder audioRecorder = null;
+    private static MonitorService cService = null;
+
     private Thread backgroundThread;
     private boolean isRunning = false;
-    private AudioRecorder audioRecorder = null;
     private boolean calling = false;
+    // private boolean monitorActive=false; // start service from the beginning and only activate monitoring
 
     private Sensor sensor;
     private SensorManager sensorManager;
@@ -58,11 +62,11 @@ public class MonitorService extends Service implements SensorEventListener {
 
         Log.i(LOG_TAG, "Service onStart");
         prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        cService = this;
 
-        addNotificationForeground();
-        monitorVoiceLevel();
         monitorAcceleration();
         addPhoneStateListener();
+        monitorVoiceLevel();
 
         return Service.START_STICKY;
     }
@@ -76,53 +80,15 @@ public class MonitorService extends Service implements SensorEventListener {
         isRunning = false;
         stopMonitorAcceleration();
         audioRecorder.close();
-        if (prefs.getBoolean(getString(R.string.preference_silent_mode_key), false) == true) {
-            audioManager.setRingerMode(AudioManager.RINGER_MODE_NORMAL);
-        }
 
         Log.i(LOG_TAG, "Service destroyed");
     }
 
-    // start service in foreground with a notification so it is not killed when memory is needed
-    // https://stackoverflow.com/questions/44913884/android-notification-not-showing-on-api-26
-    public void addNotificationForeground() {
-        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-            NotificationChannel mChannel = new NotificationChannel(
-                    CHANNEL_ID, CHANNEL_NAME, NotificationManager.IMPORTANCE_HIGH);
-            notificationManager.createNotificationChannel(mChannel);
-        }
-
-        // Create an Intent to get back to own activity https://developer.android.com/training/notify-user/navigation
-        Intent resultIntent = new Intent(this, MainActivity.class);
-        // Create the TaskStackBuilder and add the intent, which inflates the back stack
-        TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
-        stackBuilder.addNextIntentWithParentStack(resultIntent);
-        // Get the PendingIntent containing the entire back stack
-        PendingIntent resultPendingIntent = stackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT);
-
-        NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setSmallIcon(R.drawable.icon)
-                .setContentTitle(getResources().getString(R.string.notification_title))
-                .setContentText(getResources().getString(R.string.notification_message))
-                .setVibrate(new long[]{100, 250})
-                .setLights(Color.YELLOW, 500, 5000)
-                .setAutoCancel(true)
-                .setColor(ContextCompat.getColor(this, R.color.colorPrimary))
-                .setContentIntent(resultPendingIntent);
-
-        startForeground(ONGOING_NOTIFICATION_ID, mBuilder.build());
-    }
-
-    private void addPhoneStateListener() {
+        private void addPhoneStateListener() {
         telephonyManager = (TelephonyManager) this.getSystemService(Context.TELEPHONY_SERVICE);
         audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+        // TODO handle incoming calls
 
-        if (prefs.getBoolean(getString(R.string.preference_silent_mode_key), false) == true) {
-            // set to silent mode
-            audioManager.setRingerMode(AudioManager.RINGER_MODE_SILENT);
-        }
         phoneStateListener = new PhoneStateListener() {
             @Override
             public void onCallStateChanged(int state, String incomingNumber) {
@@ -148,6 +114,7 @@ public class MonitorService extends Service implements SensorEventListener {
                         }
                         audioManager.setSpeakerphoneOn(true);
                         // TODO? set loudspeaker level to zero that the noise is not transfered to the baby or should talking be possible?
+                        // TODO sometimes call is triggered twice
                     }
                 } else if (state == TelephonyManager.CALL_STATE_RINGING) {
                     Log.i(LOG_TAG, "onCallStateChanged - CALL_STATE_RINGING");
@@ -181,14 +148,22 @@ public class MonitorService extends Service implements SensorEventListener {
                 Log.i(LOG_TAG, "Pause time exceeded. Start monitoring.");
                 while (isRunning) {
                     try {
-                        Thread.sleep(1000);
+                        Thread.sleep(200);
+                        // Broadcast current noise level
                         Log.i(LOG_TAG, "Current maximum amplitude " + audioRecorder.getMaxAmplitude());
+                            Intent intent=new Intent();
+                            intent.setAction(getResources().getString(R.string.broadcast_sound_level_URL));
+                            intent.putExtra("level", audioRecorder.getCurrentAmplitudeAvg());
+                            sendBroadcast(intent);
+
                         /* TODO readFromConfig - comment CRE: not read noise level setting from config but from main activity, as it is not included in the preferences page but it´s kind of a "live-setting" */
-                        if (((audioRecorder.getMaxAmplitude() > 10000)
-                                || (motionTriggerActivated && (getMotion() > 0.2 + ((double) motionTriggerLevel / 50)))) && !calling) {
-                            Log.i(LOG_TAG, "Perform call");
-                            calling = true;
-                            performPhoneCall();
+                        if(monitoringActive){
+                            if (((audioRecorder.getMaxAmplitude() > 3000)
+                                    || (motionTriggerActivated && (getMotion() > 0.2 + ((double) motionTriggerLevel / 50)))) && !calling) {
+                                Log.i(LOG_TAG, "Perform call");
+                                calling = true;
+                                performPhoneCall();
+                            }
                         }
                     } catch (InterruptedException e) {
                         Log.i(LOG_TAG, "Thread InterruptedException");
@@ -200,13 +175,13 @@ public class MonitorService extends Service implements SensorEventListener {
         backgroundThread.start();
     }
 
-    public void monitorAcceleration() {
+    private void monitorAcceleration() {
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         sensor = sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
         sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL);
     }
 
-    public void stopMonitorAcceleration() {
+    private void stopMonitorAcceleration() {
         sensorManager.unregisterListener(this);
     }
 
@@ -298,5 +273,51 @@ public class MonitorService extends Service implements SensorEventListener {
         }
 
     }
+    /********  static functions ***************/
+    protected static void startMonitoring(){
+        audioRecorder.setMaxAmplitudeZero();
+        addNotificationForeground();
+        monitoringActive=true;
+    }
+    protected static void stopMonitoring(){
+        cancelNotificationForeground();
+        monitoringActive=false;
+    }
+
+    // start service in foreground with a notification so it is not killed when memory is needed
+    // https://stackoverflow.com/questions/44913884/android-notification-not-showing-on-api-26
+    public static void addNotificationForeground() {
+        NotificationManager notificationManager = (NotificationManager) cService.getSystemService(Context.NOTIFICATION_SERVICE);
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            NotificationChannel mChannel = new NotificationChannel(
+                    CHANNEL_ID, CHANNEL_NAME, NotificationManager.IMPORTANCE_HIGH);
+            notificationManager.createNotificationChannel(mChannel);
+        }
+
+        // Create an Intent to get back to own activity https://developer.android.com/training/notify-user/navigation
+        Intent resultIntent = new Intent(cService, MainActivity.class);
+        // Create the TaskStackBuilder and add the intent, which inflates the back stack
+        TaskStackBuilder stackBuilder = TaskStackBuilder.create(cService);
+        stackBuilder.addNextIntentWithParentStack(resultIntent);
+        // Get the PendingIntent containing the entire back stack
+        PendingIntent resultPendingIntent = stackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT);
+
+        NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(cService, CHANNEL_ID)
+                .setSmallIcon(R.drawable.icon)
+                .setContentTitle(cService.getResources().getString(R.string.notification_title))
+                .setContentText(cService.getResources().getString(R.string.notification_message))
+                .setVibrate(new long[]{100, 250})
+                .setLights(Color.YELLOW, 500, 5000)
+                .setAutoCancel(true)
+                .setColor(ContextCompat.getColor(cService, R.color.colorPrimary))
+                .setContentIntent(resultPendingIntent);
+
+        cService.startForeground(ONGOING_NOTIFICATION_ID, mBuilder.build());
+    }
+    public static void cancelNotificationForeground() {
+        cService.stopForeground(true);
+    }
+
 }
 

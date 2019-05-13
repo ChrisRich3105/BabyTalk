@@ -39,8 +39,10 @@
         android:id="@+id/tvSoundLevel"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textSize="20pt"
-        android:text="Sound Level" />
+        android:layout_alignBottom="@+id/progressBar"
+        android:layout_marginBottom="141dp"
+        android:text="Sound Level"
+        android:textSize="20pt" />
 
 
 </RelativeLayout>

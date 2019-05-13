@@ -1,6 +1,7 @@
 package com.example.babytalk;
 
 import android.Manifest;
+import android.app.ActivityManager;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -18,6 +19,7 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.media.AudioManager;
 import android.net.Uri;
+import android.os.CountDownTimer;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
 import android.provider.ContactsContract;
@@ -42,6 +44,7 @@ public class MonitorService extends Service implements SensorEventListener {
     private static boolean monitoringActive=false;
     private static AudioRecorder audioRecorder = null;
     private static MonitorService cService = null;
+    private static SharedPreferences prefs;
 
     private Thread backgroundThread;
     private boolean isRunning = false;
@@ -51,7 +54,7 @@ public class MonitorService extends Service implements SensorEventListener {
     private Sensor sensor;
     private SensorManager sensorManager;
     private double filteredAcceleration; // Just a PT1 filter
-    private SharedPreferences prefs;
+
 
     // read phone state
     private TelephonyManager telephonyManager;
@@ -84,7 +87,7 @@ public class MonitorService extends Service implements SensorEventListener {
         Log.i(LOG_TAG, "Service destroyed");
     }
 
-        private void addPhoneStateListener() {
+    private void addPhoneStateListener() {
         telephonyManager = (TelephonyManager) this.getSystemService(Context.TELEPHONY_SERVICE);
         audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
         // TODO handle incoming calls
@@ -95,15 +98,15 @@ public class MonitorService extends Service implements SensorEventListener {
                 Log.i(LOG_TAG, "onCallStateChanged");
                 if (state == TelephonyManager.CALL_STATE_IDLE) {
                     Log.i(LOG_TAG, "onCallStateChanged - IDLE");
-                    audioRecorder.setMaxAmplitudeZero();
-                    calling = false;
-
-                    audioManager.setSpeakerphoneOn(false); // to have the timeout with next cycle
                     try {
-                        Thread.sleep(1000); // There is a notification tone after that on my mobile - suppress first second
+                        Thread.sleep(500); // Tone from hanging should not trigger a scond call
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
+                    audioRecorder.setMaxAmplitudeZero();
+                    calling = false;
+                    audioManager.setSpeakerphoneOn(false); // to have the timeout with next cycle
+
                 } else if (state == TelephonyManager.CALL_STATE_OFFHOOK) {
                     Log.i(LOG_TAG, "onCallStateChanged - CALL_STATE_OFFHOOK");
                     if (prefs.getBoolean(getString(R.string.preference_speakerphone_key), false) == true) {
@@ -114,7 +117,6 @@ public class MonitorService extends Service implements SensorEventListener {
                         }
                         audioManager.setSpeakerphoneOn(true);
                         // TODO? set loudspeaker level to zero that the noise is not transfered to the baby or should talking be possible?
-                        // TODO sometimes call is triggered twice
                     }
                 } else if (state == TelephonyManager.CALL_STATE_RINGING) {
                     Log.i(LOG_TAG, "onCallStateChanged - CALL_STATE_RINGING");
@@ -131,30 +133,19 @@ public class MonitorService extends Service implements SensorEventListener {
         isRunning = true;
 
         final int motionTriggerLevel = prefs.getInt(getString(R.string.preference_motion_value_key), 0);
-        final int pauseTime = prefs.getInt(getString(R.string.preference_pause_value_key), 0);
-        final boolean pauseActivated = prefs.getBoolean(getString(R.string.preference_pause_key), false);
         final boolean motionTriggerActivated = prefs.getBoolean(getString(R.string.preference_motion_key), false);
 
         backgroundThread = new Thread(new Runnable() {
             public void run() {
-                Log.i(LOG_TAG, "Service running");
-                if (pauseActivated)
-                    try {
-                        Thread.sleep(pauseTime * 1000);
-                    } catch (InterruptedException e) {
-                        Log.i(LOG_TAG, "Thread InterruptedException");
-                    }
-                // TODO maybe add a timer showing the pause time on the main activity?
-                Log.i(LOG_TAG, "Pause time exceeded. Start monitoring.");
                 while (isRunning) {
                     try {
                         Thread.sleep(200);
                         // Broadcast current noise level
                         Log.i(LOG_TAG, "Current maximum amplitude " + audioRecorder.getMaxAmplitude());
-                            Intent intent=new Intent();
-                            intent.setAction(getResources().getString(R.string.broadcast_sound_level_URL));
-                            intent.putExtra("level", audioRecorder.getCurrentAmplitudeAvg());
-                            sendBroadcast(intent);
+                        Intent intent=new Intent();
+                        intent.setAction(getResources().getString(R.string.broadcast_sound_level_URL));
+                        intent.putExtra("level", audioRecorder.getCurrentAmplitudeAvg());
+                        sendBroadcast(intent);
 
                         /* TODO readFromConfig - comment CRE: not read noise level setting from config but from main activity, as it is not included in the preferences page but it´s kind of a "live-setting" */
                         if(monitoringActive){
@@ -275,9 +266,34 @@ public class MonitorService extends Service implements SensorEventListener {
     }
     /********  static functions ***************/
     protected static void startMonitoring(){
-        audioRecorder.setMaxAmplitudeZero();
-        addNotificationForeground();
-        monitoringActive=true;
+
+        int pauseTime = prefs.getInt(cService.getString(R.string.preference_pause_value_key), 0);
+        boolean pauseActivated = prefs.getBoolean(cService.getString(R.string.preference_pause_key), false);
+        Log.i(LOG_TAG, "Service running - Pause" + String.valueOf(pauseActivated) + " Pause time: " + String.valueOf(pauseTime));
+        if (pauseActivated){
+
+            CountDownTimer timer=new CountDownTimer(pauseTime*1000, 1000) {
+
+                public void onTick(long millisUntilFinished) {
+                    // TODO maybe add a timer showing the pause time on the main activity? Broadcast timer here or make static
+                    Log.i(LOG_TAG, "Pause exceeded: "+String.valueOf(millisUntilFinished/1000));
+                }
+
+                public void onFinish() {
+                    Log.i(LOG_TAG, "Pause time exceeded. Start monitoring.");
+
+                    audioRecorder.setMaxAmplitudeZero();
+                    addNotificationForeground();
+                    monitoringActive=true;
+                }
+            };
+            timer.start();
+
+        }else{
+            audioRecorder.setMaxAmplitudeZero();
+            addNotificationForeground();
+            monitoringActive=true;
+        }
     }
     protected static void stopMonitoring(){
         cancelNotificationForeground();
@@ -319,5 +335,8 @@ public class MonitorService extends Service implements SensorEventListener {
         cService.stopForeground(true);
     }
 
+    public static boolean getMonitoringState(){
+        return monitoringActive;
+    }
 }
 

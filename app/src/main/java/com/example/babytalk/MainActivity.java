@@ -1,6 +1,7 @@
 package com.example.babytalk;
 
 import android.Manifest;
+import android.app.ActivityManager;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -43,6 +44,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         bService=(findViewById(R.id.bActivate));
+        //bService.set
         requestCallPermission();
         // TODO got error for the first time granting it/same structure as telephone
         ActivityCompat.requestPermissions(this, permissions, REQUEST_RECORD_AUDIO_PERMISSION);
@@ -51,8 +53,19 @@ public class MainActivity extends AppCompatActivity {
         prefs = PreferenceManager.getDefaultSharedPreferences(this);
 
         soundLevelReceiver =  new Receiver();
-        registerReceiver(soundLevelReceiver, new IntentFilter(getResources().getString(R.string.broadcast_sound_level_URL)));
-        startService(new Intent(this, MonitorService.class));
+        registerReceiver(soundLevelReceiver, new IntentFilter(getResources().getString(R.string.broadcast_sound_level_URL))); //TODO to Strings
+        if(!isServiceRunning(MonitorService.class)){
+            startService(new Intent(this, MonitorService.class));
+            isMonitoring=false;
+            bService.setText("Start");
+            bService.setBackgroundResource(R.drawable.activateshape);
+        }else{
+            if(MonitorService.getMonitoringState()){
+                isMonitoring=true;
+                bService.setText("Stop");
+                bService.setBackgroundResource(R.drawable.stopshape);
+            }
+        }
     }
 
     @Override
@@ -98,18 +111,20 @@ public class MainActivity extends AppCompatActivity {
     protected void onPause() {
         super.onPause();
         unregisterReceiver(soundLevelReceiver);
-
     }
     @Override
     protected void onResume() {
         super.onResume();
         soundLevelReceiver =  new Receiver();
         registerReceiver(soundLevelReceiver, new IntentFilter(getResources().getString(R.string.broadcast_sound_level_URL)));
-        // TODO check if service is running
+        // check if service is running
+        if(!isServiceRunning(MonitorService.class)){
+            startService(new Intent(this, MonitorService.class));
+        }
     }
     public void onDestroy() {
         super.onDestroy();
-        unregisterReceiver(soundLevelReceiver);
+        //unregisterReceiver(soundLevelReceiver);
         //stopService(new Intent(this,MonitorService.class));
     }
     // Permission in manifest is not enough for calling
@@ -140,6 +155,17 @@ public class MainActivity extends AppCompatActivity {
             TextView tvSoundLevel = findViewById(R.id.tvSoundLevel);
             tvSoundLevel.setText(String.valueOf(level));
         }
+    }
+
+    // https://stackoverflow.com/questions/600207/how-to-check-if-a-service-is-running-on-android
+    private boolean isServiceRunning(Class<?> serviceClass) {
+        ActivityManager manager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+        for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
+            if (serviceClass.getName().equals(service.service.getClassName())) {
+                return true;
+            }
+        }
+        return false;
     }
 }
 

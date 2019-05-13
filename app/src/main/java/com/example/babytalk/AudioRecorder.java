@@ -1,6 +1,5 @@
 package com.example.babytalk;
 
-import android.content.Intent;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioRecord;

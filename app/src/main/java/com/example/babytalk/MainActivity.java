@@ -55,7 +55,7 @@ public class MainActivity extends AppCompatActivity {
         requestCallPermission();
         // TODO got error for the first time granting it/same structure as telephone
         ActivityCompat.requestPermissions(this, permissions, REQUEST_RECORD_AUDIO_PERMISSION);
-        
+
     }
     @Override
     protected void onPause() {

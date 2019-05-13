@@ -45,11 +45,12 @@ public class MonitorService extends Service implements SensorEventListener {
     private static AudioRecorder audioRecorder = null;
     private static MonitorService cService = null;
     private static SharedPreferences prefs;
+    private static CountDownTimer timer;
 
     private Thread backgroundThread;
     private boolean isRunning = false;
     private boolean calling = false;
-    // private boolean monitorActive=false; // start service from the beginning and only activate monitoring
+
 
     private Sensor sensor;
     private SensorManager sensorManager;
@@ -272,7 +273,7 @@ public class MonitorService extends Service implements SensorEventListener {
         Log.i(LOG_TAG, "Service running - Pause" + String.valueOf(pauseActivated) + " Pause time: " + String.valueOf(pauseTime));
         if (pauseActivated){
 
-            CountDownTimer timer=new CountDownTimer(pauseTime*1000, 1000) {
+            timer=new CountDownTimer(pauseTime*1000, 1000) {
 
                 public void onTick(long millisUntilFinished) {
                     // TODO maybe add a timer showing the pause time on the main activity? Broadcast timer here or make static
@@ -297,6 +298,7 @@ public class MonitorService extends Service implements SensorEventListener {
     }
     protected static void stopMonitoring(){
         cancelNotificationForeground();
+        timer.cancel();
         monitoringActive=false;
     }
 

@@ -68,9 +68,7 @@ public class SettingsActivity extends PreferenceActivity
 
     @Override
     public boolean onPreferenceChange(Preference preference, Object value) {
-        if(preference.getKey()==getString(R.string.preference_phonenumber_key))
-            preference.setSummary("Phone number to be called when monitoring triggers.\nCurrent setting: "+value.toString());
-        else if(preference.getKey()==getString(R.string.preference_pause_value_key))
+        if(preference.getKey()==getString(R.string.preference_pause_value_key))
             preference.setSummary("Time in seconds to pause monitoring after start.\nCurrent setting: " + value.toString() + "s");
         else if(preference.getKey()==getString(R.string.preference_motion_value_key))
             preference.setSummary("Motion level to activate call. Lower values mean more sensitive triggering.\nCurrent setting: " + value.toString() + "%");

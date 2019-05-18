@@ -11,9 +11,12 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
 import android.media.AudioManager;
+import android.net.Uri;
 import android.os.CountDownTimer;
 import android.preference.PreferenceManager;
+import android.provider.ContactsContract;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -27,6 +30,9 @@ import android.widget.TextView;
 public class MainActivity extends AppCompatActivity {
     private static final String LOG_TAG = "MonitorService";
     private static final int PERMISSION_REQUEST_CODE = 1;
+
+    //declare globally, this can be any int
+    public final int PICK_CONTACT = 2015;
 
     private boolean isMonitoring=false;
     private Button bService;

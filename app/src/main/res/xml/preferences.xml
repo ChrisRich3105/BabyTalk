@@ -48,11 +48,11 @@
         android:text="s"
         />
 
-    <EditTextPreference
+    <com.example.babytalk.ContactPreference
         android:defaultValue=""
         android:key="@string/preference_phonenumber_key"
         android:title="Phone number"
-        android:summary="hone number to be called when monitoring triggers.\nCurrent setting: -"
+        android:summary="Phone number to be called when monitoring triggers.\nCurrent setting: -"
         android:inputType="numberDecimal"
         android:digits="0123456789" />
 

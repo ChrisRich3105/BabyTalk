@@ -99,7 +99,7 @@ public class MonitorService extends Service implements SensorEventListener {
                 if (state == TelephonyManager.CALL_STATE_IDLE) {
                     Log.i(LOG_TAG, "onCallStateChanged - IDLE");
                     try {
-                        Thread.sleep(500); // Tone from hanging should not trigger a scond call
+                        Thread.sleep(2000); // Tone from hanging should not trigger a scond call
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
@@ -141,7 +141,7 @@ public class MonitorService extends Service implements SensorEventListener {
                     try {
                         Thread.sleep(200);
                         // Broadcast current noise level
-                        Log.i(LOG_TAG, "Current maximum amplitude " + audioRecorder.getMaxAmplitude());
+                        Log.i(LOG_TAG, "Current maximum amplitude " + audioRecorder.getCurrentAmplitudeAvg());
                         Intent intent=new Intent();
                         intent.setAction(getResources().getString(R.string.broadcast_sound_level_URL));
                         intent.putExtra("level", audioRecorder.getCurrentAmplitudeAvg());
@@ -149,7 +149,7 @@ public class MonitorService extends Service implements SensorEventListener {
 
                         /* TODO readFromConfig - comment CRE: not read noise level setting from config but from main activity, as it is not included in the preferences page but it´s kind of a "live-setting" */
                         if(monitoringActive){
-                            if (((audioRecorder.getMaxAmplitude() > 3000)
+                            if (((audioRecorder.getCurrentAmplitudeAvg() > 3000)
                                     || (motionTriggerActivated && (getMotion() > 0.2 + ((double) motionTriggerLevel / 50)))) && !calling) {
                                 Log.i(LOG_TAG, "Perform call");
                                 calling = true;

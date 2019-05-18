@@ -238,7 +238,7 @@ public class MonitorService extends Service implements SensorEventListener {
 
                 startActivity (phoneIntent);
             }else{
-                //TODO add Toast/Info
+
                 Log.i(LOG_TAG, "Nothing found in cursor");
             }*/
             Intent phoneIntent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + phoneNumber));

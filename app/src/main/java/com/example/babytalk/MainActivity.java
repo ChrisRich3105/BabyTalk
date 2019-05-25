@@ -2,37 +2,30 @@ package com.example.babytalk;
 
 import android.Manifest;
 import android.app.ActivityManager;
-import android.app.Notification;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.database.Cursor;
 import android.media.AudioManager;
-import android.net.Uri;
 import android.os.CountDownTimer;
 import android.preference.PreferenceManager;
-import android.provider.ContactsContract;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
-import android.webkit.WebView;
 import android.widget.Button;
+import android.widget.SeekBar;
 import android.widget.TextView;
+
+import com.github.anastr.speedviewlib.ProgressiveGauge;
 
 public class MainActivity extends AppCompatActivity {
     private static final String LOG_TAG = "MonitorService";
     private static final int PERMISSION_REQUEST_CODE = 1;
-
-    //declare globally, this can be any int
-    public final int PICK_CONTACT = 2015;
 
     private boolean isMonitoring=false;
     private Button bService;
@@ -41,6 +34,8 @@ public class MainActivity extends AppCompatActivity {
     private Receiver soundLevelReceiver;
     private CountDownTimer timer = null;
     private TextView tvSoundLevel;
+    ProgressiveGauge progressiveGauge;
+    private int soundLimitValue = 0;
 
     private static final int REQUEST_RECORD_AUDIO_PERMISSION = 200;
 
@@ -55,8 +50,36 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         bService=(findViewById(R.id.bActivate));
         tvSoundLevel = findViewById(R.id.tvSoundLevel);
+        tvSoundLevel.setText("");
         audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
         prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        progressiveGauge= (ProgressiveGauge) findViewById(R.id.progressiveGauge);
+
+        int storedSoundLimit= prefs.getInt(getString(R.string.preference_soundlimit_key),3000);
+
+        SeekBar seekBar = (SeekBar) findViewById(R.id.soundLimitSeekBar);
+        seekBar.setProgress(storedSoundLimit);
+        soundLimitValue=seekBar.getProgress();
+        progressiveGauge.setMaxSpeed((float)soundLimitValue);
+        progressiveGauge.setSpeedTextSize(0);
+
+        seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+                                               @Override
+                                               public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                                                   soundLimitValue=seekBar.getProgress();
+                                                   progressiveGauge.setMaxSpeed((float)soundLimitValue);
+                                                   SharedPreferences.Editor editor = prefs.edit();
+                                                   editor.putInt(getString(R.string.preference_soundlimit_key),soundLimitValue);
+                                                   editor.commit();
+                                               }
+                                               @Override
+                                               public void onStartTrackingTouch(SeekBar seekBar) {
+                                               }
+                                               @Override
+                                               public void onStopTrackingTouch(SeekBar seekBar) {
+                                                   seekBar.setSecondaryProgress(seekBar.getProgress());
+                                               }
+                                           });
 
         requestCallPermission();
         // TODO got error for the first time granting it/same structure as telephone
@@ -118,7 +141,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void startMonitoring(View view){
-
         if(!isMonitoring && timer==null) {
             int pauseTime = prefs.getInt(getString(R.string.preference_pause_value_key), 0);
             boolean pauseActivated = prefs.getBoolean(getString(R.string.preference_pause_key), false);
@@ -194,8 +216,9 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onReceive(Context arg0, Intent arg1) {
             if(timer==null){
-            double level = arg1.getExtras().getDouble("level");
-            tvSoundLevel.setText(String.valueOf(level));
+                double level = arg1.getExtras().getDouble("level");
+                tvSoundLevel.setText(String.valueOf(level));
+                progressiveGauge.speedPercentTo((int)((level/progressiveGauge.getMaxSpeed())*100),100);
             }
         }
     }

@@ -1,7 +1,6 @@
 package com.example.babytalk;
 
 import android.Manifest;
-import android.app.ActivityManager;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -9,9 +8,9 @@ import android.app.Service;
 import android.app.TaskStackBuilder;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.database.Cursor;
 import android.graphics.Color;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -19,18 +18,15 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.media.AudioManager;
 import android.net.Uri;
-import android.os.CountDownTimer;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
-import android.provider.ContactsContract;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.content.ContextCompat;
 import android.telephony.PhoneStateListener;
 import android.telephony.TelephonyManager;
 import android.util.Log;
-import android.widget.ProgressBar;
-import android.widget.RemoteViews;
+import android.content.BroadcastReceiver;
 
 import java.lang.reflect.Method;
 
@@ -64,6 +60,7 @@ public class MonitorService extends Service implements SensorEventListener {
     public int onStartCommand(Intent intent, int flags, int startId) {
 
         Log.i(LOG_TAG, "Service onStart");
+
         prefs = PreferenceManager.getDefaultSharedPreferences(this);
         cService = this;
 
@@ -141,15 +138,14 @@ public class MonitorService extends Service implements SensorEventListener {
                     try {
                         Thread.sleep(200);
                         // Broadcast current noise level
-                        Log.i(LOG_TAG, "Current maximum amplitude " + audioRecorder.getCurrentAmplitudeAvg());
+                        Log.i(LOG_TAG, "Current maximum amplitude " + audioRecorder.getCurrentAmplitudeAvg() + "Sound limit: " + prefs.getInt(getString(R.string.preference_soundlimit_key),3000));
                         Intent intent=new Intent();
                         intent.setAction(getResources().getString(R.string.broadcast_sound_level_URL));
                         intent.putExtra("level", audioRecorder.getCurrentAmplitudeAvg());
                         sendBroadcast(intent);
 
-                        /* TODO readFromConfig - comment CRE: not read noise level setting from config but from main activity, as it is not included in the preferences page but it´s kind of a "live-setting" */
                         if(monitoringActive){
-                            if (((audioRecorder.getCurrentAmplitudeAvg() > 3000)
+                            if (((audioRecorder.getCurrentAmplitudeAvg() > prefs.getInt(getString(R.string.preference_soundlimit_key),3000))
                                     || (motionTriggerActivated && (getMotion() > 0.2 + ((double) motionTriggerLevel / 50)))) && !calling) {
                                 Log.i(LOG_TAG, "Perform call");
                                 calling = true;
@@ -313,5 +309,6 @@ public class MonitorService extends Service implements SensorEventListener {
     public static boolean getMonitoringState(){
         return monitoringActive;
     }
+
 }
 

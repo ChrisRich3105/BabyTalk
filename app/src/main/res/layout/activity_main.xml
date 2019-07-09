@@ -50,9 +50,9 @@
         android:layout_alignParentStart="true"
         android:layout_alignParentLeft="true"
         android:layout_alignParentTop="true"
-        android:layout_marginStart="45dp"
-        android:layout_marginLeft="45dp"
-        android:layout_marginTop="372dp"
+        android:layout_marginStart="58dp"
+        android:layout_marginLeft="58dp"
+        android:layout_marginTop="149dp"
         app:sv_unit="" />
 
     <SeekBar
@@ -67,13 +67,13 @@
         android:layout_alignParentRight="true"
         android:layout_marginStart="57dp"
         android:layout_marginLeft="57dp"
-        android:layout_marginTop="522dp"
+        android:layout_marginTop="292dp"
         android:layout_marginEnd="58dp"
         android:layout_marginRight="58dp"
         android:max="10000"
         android:min="1000"
         android:progress="3000"
-        android:progressDrawable="@drawable/custom_progress"/>
+        android:progressDrawable="@drawable/custom_progress" />
 
     <ImageView
         android:id="@+id/imageView2"

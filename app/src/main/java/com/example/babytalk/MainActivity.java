@@ -25,9 +25,9 @@ import com.github.anastr.speedviewlib.ProgressiveGauge;
 
 public class MainActivity extends AppCompatActivity {
     private static final String LOG_TAG = "MonitorService";
-    private static final int PERMISSION_REQUEST_CODE = 1;
+    private static final int PERMISSION_REQUEST_CODE = 1; // Request code to perform phone calls
 
-    private boolean isMonitoring=false;
+    private boolean isMonitoring=false; // Is monitoring currently switched on (service needs to be created
     private Button bService;
     private AudioManager audioManager;
     private SharedPreferences prefs;

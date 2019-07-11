@@ -92,7 +92,8 @@ public class MonitorService extends Service implements SensorEventListener {
     public void onDestroy() {
         isRunning = false; // stop monitoring Audio-levels
         stopMonitorAcceleration(); // acceleration is not monitored any more
-        audioRecorder.close(); // Free resources audio recorder
+        if (audioRecorder != null)
+            audioRecorder.close(); // Free resources audio recorder
 
         Log.i(LOG_TAG, "Service destroyed");
     }
@@ -111,7 +112,7 @@ public class MonitorService extends Service implements SensorEventListener {
                 if (state == TelephonyManager.CALL_STATE_IDLE) { // Call is finished
                     Log.i(LOG_TAG, "onCallStateChanged - IDLE");
                     try {
-                        Thread.sleep(2000); // Tone from hanging should not trigger a scond call
+                        Thread.sleep(5000); // Tone from hanging should not trigger a scond call
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
@@ -146,18 +147,19 @@ public class MonitorService extends Service implements SensorEventListener {
         audioRecorder.start(); // Start audio recorder
         isRunning = true;
 
-        // get motion configuration and limits
-        final int motionTriggerLevel = prefs.getInt(getString(R.string.preference_motion_value_key), 0);
-        final boolean motionTriggerActivated = prefs.getBoolean(getString(R.string.preference_motion_key), false);
 
         // create thread for monitoring babycrying and motion
         backgroundThread = new Thread(new Runnable() {
             public void run() {
                 while (isRunning) {
                     try {
+                        // get motion configuration and limits
+                        final int motionTriggerLevel = prefs.getInt(getString(R.string.preference_motion_value_key), 0);
+                        final boolean motionTriggerActivated = prefs.getBoolean(getString(R.string.preference_motion_key), false);
                         Thread.sleep(200); // reduce frequency to save power
                         // Broadcast current noise level
-                        Log.i(LOG_TAG, "Current maximum amplitude " + audioRecorder.getCurrentAmplitudeAvg() + "Sound limit: " + prefs.getInt(getString(R.string.preference_soundlimit_key),3000));
+                        Log.i(LOG_TAG, "Current maximum amplitude " + (int)audioRecorder.getCurrentAmplitudeAvg() + " Sound limit: " + prefs.getInt(getString(R.string.preference_soundlimit_key),3000));
+                        Log.i(LOG_TAG, "Current acceleration " + getMotion() + " Accel limit: " + (0.2 + ((double) motionTriggerLevel / 25)));
 
                         // send out current noise level via a broadcast to display on main activity
                         Intent intent=new Intent();
@@ -166,8 +168,8 @@ public class MonitorService extends Service implements SensorEventListener {
                         sendBroadcast(intent);
 
                         if(monitoringActive){ // When activated
-                            if (((audioRecorder.getMaxAmplitude() > prefs.getInt(getString(R.string.preference_soundlimit_key),3000)) // audio level exceeded
-                                    || (motionTriggerActivated && (getMotion() > 0.2 + ((double) motionTriggerLevel / 50)))) && !calling) { // motion level exceeded
+                            if ((((int)audioRecorder.getCurrentAmplitudeAvg() > prefs.getInt(getString(R.string.preference_soundlimit_key),3000)) // audio level exceeded
+                                    || (motionTriggerActivated && (getMotion() > 0.2 + ((double) motionTriggerLevel / 25)))) && !calling) { // motion level exceeded
                                 Log.i(LOG_TAG, "Perform call");
                                 calling = true;
                                 performPhoneCall(); // Call mummy/daddy
@@ -195,7 +197,8 @@ public class MonitorService extends Service implements SensorEventListener {
      *  unregister sensor listener
      */
     private void stopMonitorAcceleration() {
-        sensorManager.unregisterListener(this);
+        if (sensorManager != null)
+            sensorManager.unregisterListener(this);
     }
     /**
      *  Sensor listener method that has to be overwritten

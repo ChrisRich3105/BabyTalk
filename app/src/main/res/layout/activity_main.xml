@@ -11,10 +11,11 @@
         android:id="@+id/imageButton"
         android:layout_width="77dp"
         android:layout_height="72dp"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentRight="true"
         android:layout_marginTop="8dp"
         android:layout_marginEnd="8dp"
         android:layout_marginRight="8dp"
-        android:layout_alignParentRight="true"
         android:background="@android:color/transparent"
         android:onClick="goToSettings"
         app:layout_constraintEnd_toEndOf="parent"
@@ -25,68 +26,96 @@
         android:id="@+id/bActivate"
         android:layout_width="187dp"
         android:layout_height="67dp"
+        android:layout_alignParentBottom="true"
         android:layout_centerHorizontal="true"
         android:layout_marginBottom="16dp"
-        android:layout_alignParentBottom="true"
-        android:onClick="startMonitoring"
         android:background="@drawable/activateshape"
+        android:onClick="startMonitoring"
         android:text="Activate"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
     <TextView
-        android:id="@+id/tvSoundLevel"
+        android:id="@+id/tvInformationMessage"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="141dp"
-        android:text="Sound Level"
-        android:textSize="20pt" />
-
-    <com.github.anastr.speedviewlib.ProgressiveGauge
-        android:id="@+id/progressiveGauge"
-        android:layout_width="291dp"
-        android:layout_height="123dp"
-        android:layout_alignParentStart="true"
-        android:layout_alignParentLeft="true"
-        android:layout_alignParentTop="true"
-        android:layout_marginStart="58dp"
-        android:layout_marginLeft="58dp"
-        android:layout_marginTop="149dp"
-        app:sv_unit="" />
-
-    <SeekBar
-        android:id="@+id/soundLimitSeekBar"
-        style="@android:style/Widget.DeviceDefault.Light.SeekBar"
-        android:layout_width="296dp"
-        android:layout_height="17dp"
         android:layout_alignParentStart="true"
         android:layout_alignParentLeft="true"
         android:layout_alignParentTop="true"
         android:layout_alignParentEnd="true"
         android:layout_alignParentRight="true"
-        android:layout_marginStart="57dp"
-        android:layout_marginLeft="57dp"
-        android:layout_marginTop="292dp"
-        android:layout_marginEnd="58dp"
-        android:layout_marginRight="58dp"
+        android:layout_marginStart="77dp"
+        android:layout_marginLeft="77dp"
+        android:layout_marginTop="148dp"
+        android:layout_marginEnd="83dp"
+        android:layout_marginRight="83dp"
+        android:layout_marginBottom="141dp"
+        android:text="Timer:"
+        android:textSize="20pt" />
+
+    <RelativeLayout
+        android:layout_width="333dp"
+        android:layout_height="185dp"
+        android:layout_above="@+id/soundLimitSeekBar"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentEnd="true"
+        android:layout_marginStart="39dp"
+        android:layout_marginEnd="39dp"
+        android:layout_marginBottom="34dp">
+
+        <com.github.anastr.speedviewlib.ProgressiveGauge
+            android:id="@+id/progressiveGauge"
+            android:layout_width="247dp"
+            android:layout_height="119dp"
+            android:layout_alignParentStart="true"
+            android:layout_alignParentTop="true"
+            android:layout_alignParentEnd="true"
+            android:layout_alignParentBottom="true"
+            android:layout_marginStart="35dp"
+            android:layout_marginTop="49dp"
+            android:layout_marginEnd="61dp"
+            android:layout_marginBottom="17dp"
+            android:adjustViewBounds="false"
+            android:scaleType="centerCrop"
+            app:sv_unit="" />
+
+        <ImageView
+            android:id="@+id/imageView2"
+            android:layout_width="26dp"
+            android:layout_height="151dp"
+            android:layout_alignBottom="@+id/progressiveGauge"
+            android:layout_alignParentEnd="true"
+            android:layout_marginStart="-1dp"
+            android:layout_marginLeft="-1dp"
+            android:layout_marginEnd="35dp"
+            android:layout_marginRight="5dp"
+            android:scaleType="fitXY"
+            app:srcCompat="@drawable/gaugeextension2" />
+
+
+    </RelativeLayout>
+
+    <SeekBar
+        android:id="@+id/soundLimitSeekBar"
+        style="@android:style/Widget.DeviceDefault.Light.SeekBar"
+        android:layout_width="wrap_content"
+        android:layout_height="17dp"
+        android:layout_above="@+id/bActivate"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentRight="true"
+        android:layout_marginStart="55dp"
+        android:layout_marginLeft="55dp"
+        android:layout_marginEnd="60dp"
+        android:layout_marginRight="60dp"
+        android:layout_marginBottom="37dp"
         android:max="10000"
         android:min="1000"
         android:progress="3000"
         android:progressDrawable="@drawable/custom_progress" />
 
-    <ImageView
-        android:id="@+id/imageView2"
-        android:layout_width="25dp"
-        android:layout_height="155dp"
-        android:layout_alignBottom="@+id/progressiveGauge"
-        android:layout_marginStart="-1dp"
-        android:layout_marginLeft="-1dp"
-        android:layout_marginBottom="0dp"
-        android:layout_toEndOf="@+id/progressiveGauge"
-        android:layout_toRightOf="@+id/progressiveGauge"
-        android:scaleType="fitXY"
-        app:srcCompat="@drawable/gaugeextension2" />
 
 
 </RelativeLayout>

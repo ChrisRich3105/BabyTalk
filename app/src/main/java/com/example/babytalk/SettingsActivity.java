@@ -15,9 +15,11 @@ public class SettingsActivity extends PreferenceActivity
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        // Set preferences from ressource file
         //noinspection deprecation
         addPreferencesFromResource(R.xml.preferences);
 
+        // Now register onChangeListener for special preferences
         //noinspection deprecation
         Preference phoneNumberPref = findPreference(getString(R.string.preference_phonenumber_key));
         phoneNumberPref.setOnPreferenceChangeListener(this);
@@ -34,7 +36,7 @@ public class SettingsActivity extends PreferenceActivity
         Preference accelerationPref = findPreference(getString(R.string.preference_motion_key));
         accelerationPref.setOnPreferenceChangeListener(this);
 
-
+        // read out preference settings initially
         SharedPreferences sharedPrefs = PreferenceManager.getDefaultSharedPreferences(this);
         String savedPhoneNumber = sharedPrefs.getString(phoneNumberPref.getKey(), "");
         if (!savedPhoneNumber.isEmpty())
@@ -46,7 +48,7 @@ public class SettingsActivity extends PreferenceActivity
         if (!accelerationValue.isEmpty())
             onPreferenceChange(accelerationValuePref, accelerationValue);
 
-
+        // Set enabled options based on various settings
         boolean pauseActivated = sharedPrefs.getBoolean(getString(R.string.preference_pause_key),false);
         if(!pauseActivated) {
             findPreference(getString(R.string.preference_pause_value_key)).setEnabled(false);
@@ -70,18 +72,21 @@ public class SettingsActivity extends PreferenceActivity
 
     @Override
     public boolean onPreferenceChange(Preference preference, Object value) {
+        // Update various preference summaries when their values are changed
         if(preference.getKey()==getString(R.string.preference_pause_value_key))
             preference.setSummary("Time in seconds to pause monitoring after start.\nCurrent setting: " + value.toString() + "s");
         else if(preference.getKey()==getString(R.string.preference_motion_value_key))
             preference.setSummary("Motion level to activate call. Lower values mean more sensitive triggering.\nCurrent setting: " + value.toString() + "%");
+        // Change enabled settings when certain functions are disabled
         else if(preference.getKey()==getString(R.string.preference_pause_key)){
             if(!Boolean.parseBoolean(value.toString())) {
-                findPreference(getString(R.string.preference_pause_value_key)).setEnabled(false); //TODO method is marked as deprecated
+                findPreference(getString(R.string.preference_pause_value_key)).setEnabled(false);
                 findPreference(getString(R.string.preference_pause_value_key)).setShouldDisableView(true);
             }
             else {
                 findPreference(getString(R.string.preference_pause_value_key)).setEnabled(true);
                 findPreference(getString(R.string.preference_pause_value_key)).setShouldDisableView(false);
+                // Need to renew the activity
                 finish();
                 overridePendingTransition(0, 0);
                 startActivity(getIntent());
@@ -96,6 +101,7 @@ public class SettingsActivity extends PreferenceActivity
             else {
                 findPreference(getString(R.string.preference_motion_value_key)).setEnabled(true);
                 findPreference(getString(R.string.preference_motion_value_key)).setShouldDisableView(false);
+                // Need to renew the activity
                 finish();
                 overridePendingTransition(0, 0);
                 startActivity(getIntent());

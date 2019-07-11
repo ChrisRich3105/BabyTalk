@@ -316,6 +316,8 @@ public class MainActivity extends AppCompatActivity {
                 // Start timer execution
                 timer.start();
             }else{
+                // Set information text
+                tvInfoMessage.setText("Monitoring \nactive");
                 // Start monitoring directly when no pause time is activated
                 MonitorService.startMonitoring();
                 // Set flag

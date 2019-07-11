@@ -218,7 +218,6 @@ public class MonitorService extends Service implements SensorEventListener {
             // Calculate vectorsum
             double accelerationSum = Math.sqrt(event.values[0] * event.values[0] + event.values[1] * event.values[1] + event.values[2] * event.values[2]);
             filteredAcceleration = 0.95 * filteredAcceleration + 0.05 * accelerationSum; // No idea about timeconstant yet
-            Log.i(LOG_TAG, "Acceleration: " + filteredAcceleration);
         }
     }
 

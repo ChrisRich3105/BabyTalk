@@ -92,7 +92,8 @@ public class MonitorService extends Service implements SensorEventListener {
     public void onDestroy() {
         isRunning = false; // stop monitoring Audio-levels
         stopMonitorAcceleration(); // acceleration is not monitored any more
-        audioRecorder.close(); // Free resources audio recorder
+        if (audioRecorder != null)
+            audioRecorder.close(); // Free resources audio recorder
 
         Log.i(LOG_TAG, "Service destroyed");
     }
@@ -110,16 +111,14 @@ public class MonitorService extends Service implements SensorEventListener {
                 Log.i(LOG_TAG, "onCallStateChanged");
                 if (state == TelephonyManager.CALL_STATE_IDLE) { // Call is finished
                     Log.i(LOG_TAG, "onCallStateChanged - IDLE");
-                    audioManager.setSpeakerphoneOn(false); // Speakerphone to false again
-
                     try {
-                        Thread.sleep(2000); // Tone from hanging should not trigger a second call
+                        Thread.sleep(5000); // Tone from hanging should not trigger a scond call
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
                     audioRecorder.setMaxAmplitudeZero(); // Go back to new monitoring
                     calling = false; // Call is over
-
+                    audioManager.setSpeakerphoneOn(false); // Speakerphone to false again
 
                 } else if (state == TelephonyManager.CALL_STATE_OFFHOOK) { // Phone picked up
                     Log.i(LOG_TAG, "onCallStateChanged - CALL_STATE_OFFHOOK");
@@ -148,18 +147,19 @@ public class MonitorService extends Service implements SensorEventListener {
         audioRecorder.start(); // Start audio recorder
         isRunning = true;
 
-        // get motion configuration and limits
-        final int motionTriggerLevel = prefs.getInt(getString(R.string.preference_motion_value_key), 0);
-        final boolean motionTriggerActivated = prefs.getBoolean(getString(R.string.preference_motion_key), false);
 
         // create thread for monitoring babycrying and motion
         backgroundThread = new Thread(new Runnable() {
             public void run() {
                 while (isRunning) {
                     try {
+                        // get motion configuration and limits
+                        final int motionTriggerLevel = prefs.getInt(getString(R.string.preference_motion_value_key), 0);
+                        final boolean motionTriggerActivated = prefs.getBoolean(getString(R.string.preference_motion_key), false);
                         Thread.sleep(200); // reduce frequency to save power
                         // Broadcast current noise level
-                        Log.i(LOG_TAG, "Current maximum amplitude " + audioRecorder.getCurrentAmplitudeAvg() + "Sound limit: " + prefs.getInt(getString(R.string.preference_soundlimit_key),3000));
+                        Log.i(LOG_TAG, "Current maximum amplitude " + (int)audioRecorder.getCurrentAmplitudeAvg() + " Sound limit: " + prefs.getInt(getString(R.string.preference_soundlimit_key),3000));
+                        Log.i(LOG_TAG, "Current acceleration " + getMotion() + " Accel limit: " + (0.2 + ((double) motionTriggerLevel / 25)));
 
                         // send out current noise level via a broadcast to display on main activity
                         Intent intent=new Intent();
@@ -168,8 +168,8 @@ public class MonitorService extends Service implements SensorEventListener {
                         sendBroadcast(intent);
 
                         if(monitoringActive){ // When activated
-                            if (((audioRecorder.getMaxAmplitude() > prefs.getInt(getString(R.string.preference_soundlimit_key),3000)) // audio level exceeded
-                                    || (motionTriggerActivated && (getMotion() > 0.2 + ((double) motionTriggerLevel / 50)))) && !calling) { // motion level exceeded
+                            if ((((int)audioRecorder.getCurrentAmplitudeAvg() > prefs.getInt(getString(R.string.preference_soundlimit_key),3000)) // audio level exceeded
+                                    || (motionTriggerActivated && (getMotion() > 0.2 + ((double) motionTriggerLevel / 25)))) && !calling) { // motion level exceeded
                                 Log.i(LOG_TAG, "Perform call");
                                 calling = true;
                                 performPhoneCall(); // Call mummy/daddy
@@ -197,7 +197,8 @@ public class MonitorService extends Service implements SensorEventListener {
      *  unregister sensor listener
      */
     private void stopMonitorAcceleration() {
-        sensorManager.unregisterListener(this);
+        if (sensorManager != null)
+            sensorManager.unregisterListener(this);
     }
     /**
      *  Sensor listener method that has to be overwritten
@@ -206,7 +207,7 @@ public class MonitorService extends Service implements SensorEventListener {
     public void onAccuracyChanged(Sensor arg0, int arg1) {
     }
     /**
-     *  If acceleration sensor data changes
+     *  If sensor data changes
      */
     @Override
     public void onSensorChanged(SensorEvent event) {
@@ -217,7 +218,6 @@ public class MonitorService extends Service implements SensorEventListener {
             // Calculate vectorsum
             double accelerationSum = Math.sqrt(event.values[0] * event.values[0] + event.values[1] * event.values[1] + event.values[2] * event.values[2]);
             filteredAcceleration = 0.95 * filteredAcceleration + 0.05 * accelerationSum; // No idea about timeconstant yet
-            Log.i(LOG_TAG, "Acceleration: " + filteredAcceleration);
         }
     }
 
@@ -275,10 +275,16 @@ public class MonitorService extends Service implements SensorEventListener {
 
                 Log.i(LOG_TAG, "Nothing found in cursor");
             }*/
-            Intent phoneIntent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + phoneNumber));
+            /*Intent phoneIntent = new Intent("com.android.phone.videocall", Uri.parse("tel:" + phoneNumber));
             phoneIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             phoneIntent.addFlags(Intent.FLAG_FROM_BACKGROUND);
-            phoneIntent.putExtra("videocall", true);
+            phoneIntent.putExtra("videocall", true);*/
+            Intent phoneIntent = new Intent("com.google.android.apps.tachyon.action.CALL");
+            phoneIntent.setPackage ("com.google.android.apps.tachyon");
+            phoneIntent.setData(Uri.parse("tel:" + phoneNumber));
+            phoneIntent.putExtra("com.google.android.apps.tachyon.extra.IS_AUDIO_ONLY", false);
+            phoneIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            phoneIntent.addFlags(Intent.FLAG_FROM_BACKGROUND);
             if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED) {
                 Log.i(LOG_TAG, "Permission missing");
                 return;
@@ -305,16 +311,16 @@ public class MonitorService extends Service implements SensorEventListener {
      *  Activate monitoring of voice and motion level from MainActivity
      */
     protected static void startMonitoring(){
-            audioRecorder.setMaxAmplitudeZero();
-            addNotificationForeground();
-            monitoringActive=true;
+            audioRecorder.setMaxAmplitudeZero(); // Set back the maximum apmlitude to 0
+            addNotificationForeground(); // Add notification
+            monitoringActive=true; // Enable monitoring
     }
     /**
      *  Stop monitoring of voice and motion level from MainActivity
      */
     protected static void stopMonitoring(){
-        cancelNotificationForeground();
-        monitoringActive=false;
+        cancelNotificationForeground(); // remove notification
+        monitoringActive=false; // Disable monitoring
     }
 
     /**

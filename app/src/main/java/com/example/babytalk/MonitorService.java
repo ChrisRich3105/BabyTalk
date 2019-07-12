@@ -110,14 +110,16 @@ public class MonitorService extends Service implements SensorEventListener {
                 Log.i(LOG_TAG, "onCallStateChanged");
                 if (state == TelephonyManager.CALL_STATE_IDLE) { // Call is finished
                     Log.i(LOG_TAG, "onCallStateChanged - IDLE");
+                    audioManager.setSpeakerphoneOn(false); // Speakerphone to false again
+
                     try {
-                        Thread.sleep(2000); // Tone from hanging should not trigger a scond call
+                        Thread.sleep(2000); // Tone from hanging should not trigger a second call
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
                     audioRecorder.setMaxAmplitudeZero(); // Go back to new monitoring
                     calling = false; // Call is over
-                    audioManager.setSpeakerphoneOn(false); // Speakerphone to false again
+
 
                 } else if (state == TelephonyManager.CALL_STATE_OFFHOOK) { // Phone picked up
                     Log.i(LOG_TAG, "onCallStateChanged - CALL_STATE_OFFHOOK");
@@ -204,7 +206,7 @@ public class MonitorService extends Service implements SensorEventListener {
     public void onAccuracyChanged(Sensor arg0, int arg1) {
     }
     /**
-     *  If sensor data changes
+     *  If acceleration sensor data changes
      */
     @Override
     public void onSensorChanged(SensorEvent event) {

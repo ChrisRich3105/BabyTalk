@@ -20,6 +20,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.SeekBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.github.anastr.speedviewlib.ProgressiveGauge;
 
@@ -27,11 +28,11 @@ public class MainActivity extends AppCompatActivity {
     private static final String LOG_TAG = "MonitorService";
     private static final int PERMISSION_REQUEST_CODE = 1; // Request code to perform phone calls
 
-    private boolean isMonitoring=false; // Is monitoring currently switched on (service needs to be created
+    private boolean isMonitoring=false;
     private Button bService;
     private AudioManager audioManager;
     private SharedPreferences prefs;
-    private Receiver soundLevelReceiver;
+    private SoundLevelReceiver soundLevelReceiver;
     private CountDownTimer timer = null;
     private TextView tvSoundLevel;
     ProgressiveGauge progressiveGauge;
@@ -96,7 +97,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         if(soundLevelReceiver==null){
-            soundLevelReceiver =  new Receiver();
+            soundLevelReceiver =  new SoundLevelReceiver();
             registerReceiver(soundLevelReceiver, new IntentFilter(getResources().getString(R.string.broadcast_sound_level_URL)));
         }
         // check if service is running
@@ -199,11 +200,8 @@ public class MainActivity extends AppCompatActivity {
                 != PackageManager.PERMISSION_GRANTED) {
 
             // Permission is not granted
-            if (ActivityCompat.shouldShowRequestPermissionRationale(this,
-                    Manifest.permission.CALL_PHONE)) {
-                // Show an explanation to the user *asynchronously* -- don't block
-                // this thread waiting for the user's response! After the user
-                // sees the explanation, try again to request the permission.
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.CALL_PHONE)) {
+                Toast.makeText(this, "Permission needed to call the contact when the baby is crying", Toast.LENGTH_LONG).show();
             } else {
                 // request the permission
                 ActivityCompat.requestPermissions(this,new String[]{Manifest.permission.CALL_PHONE},PERMISSION_REQUEST_CODE);
@@ -211,7 +209,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
     // According to https://stackoverflow.com/questions/3907713/how-to-send-and-receive-broadcast-message
-    private class Receiver extends BroadcastReceiver {
+    private class SoundLevelReceiver extends BroadcastReceiver {
 
         @Override
         public void onReceive(Context arg0, Intent arg1) {

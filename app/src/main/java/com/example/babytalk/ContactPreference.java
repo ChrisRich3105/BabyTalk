@@ -1,6 +1,7 @@
 package com.example.babytalk;
 /**
  * CLS_Prefs_Contact class
+ * https://stackoverflow.com/questions/20300135/how-to-make-a-dialogpreference-that-shows-a-button-next-to-an-edittext
  *
  * This is the class that allows for a custom Contact Picker Preference
  * (auto refresh summary).
@@ -72,8 +73,7 @@ public class ContactPreference extends RingtonePreference
     /* ----------------------------- Overrides ------------------------------ */
 
     @Override
-    public final boolean onActivityResult
-            (final int requestCode, final int resultCode, final Intent data)
+    public final boolean onActivityResult(final int requestCode, final int resultCode, final Intent data)
     {
         boolean result = false;
         if (super.onActivityResult(requestCode, resultCode, data))

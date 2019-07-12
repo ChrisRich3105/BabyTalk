@@ -135,7 +135,7 @@ public class SeekBarPreference extends DialogPreference implements SeekBar.OnSee
     @Override
     public void onStopTrackingTouch(SeekBar seek) {}
 
-    public void setMax(int max) { mMax = max; }
+    /*public void setMax(int max) { mMax = max; }
     public int getMax() { return mMax; }
 
     public void setProgress(int progress) {
@@ -143,7 +143,7 @@ public class SeekBarPreference extends DialogPreference implements SeekBar.OnSee
         if (mSeekBar != null)
             mSeekBar.setProgress(progress);
     }
-    public int getProgress() { return mValue; }
+    public int getProgress() { return mValue; }*/
     // ------------------------------------------------------------------------------------------
 
 

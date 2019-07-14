@@ -6,6 +6,7 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.app.TaskStackBuilder;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -129,7 +130,6 @@ public class MonitorService extends Service implements SensorEventListener {
                             e.printStackTrace();
                         }
                         audioManager.setSpeakerphoneOn(true); // microphone is more sensitve and talking to the baby is possible
-                        // TODO set loudspeaker level to zero that the noise is not transfered to the baby or should talking be possible?
                     }
                 } else if (state == TelephonyManager.CALL_STATE_RINGING) {
                     Log.i(LOG_TAG, "onCallStateChanged - CALL_STATE_RINGING");
@@ -189,7 +189,7 @@ public class MonitorService extends Service implements SensorEventListener {
      */
     private void monitorAcceleration() {
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE); // get sensor-manager
-        sensor = sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION); // get linear acc
+        sensor = sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION); // get linear acc .TYPE_LINEAR_ACCELERATION
         sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL); // register listener
     }
 
@@ -212,9 +212,9 @@ public class MonitorService extends Service implements SensorEventListener {
     @Override
     public void onSensorChanged(SensorEvent event) {
         if (event.sensor.getType() == Sensor.TYPE_LINEAR_ACCELERATION) {
-            //Log.i(LOG_TAG,"AccX: "+event.values[0]);
-            //Log.i(LOG_TAG,"AccY: "+event.values[1]);
-            //Log.i(LOG_TAG,"AccZ: "+event.values[2]);
+            Log.i(LOG_TAG,"AccX: "+event.values[0]);
+            Log.i(LOG_TAG,"AccY: "+event.values[1]);
+            Log.i(LOG_TAG,"AccZ: "+event.values[2]);
             // Calculate vectorsum
             double accelerationSum = Math.sqrt(event.values[0] * event.values[0] + event.values[1] * event.values[1] + event.values[2] * event.values[2]);
             filteredAcceleration = 0.95 * filteredAcceleration + 0.05 * accelerationSum; // No idea about timeconstant yet
@@ -275,20 +275,28 @@ public class MonitorService extends Service implements SensorEventListener {
 
                 Log.i(LOG_TAG, "Nothing found in cursor");
             }*/
-            /*Intent phoneIntent = new Intent("com.android.phone.videocall", Uri.parse("tel:" + phoneNumber));
+            // SKYPE
+            /*Intent phoneIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("tel:" + phoneNumber + "?call"));
             phoneIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            phoneIntent.setComponent(new ComponentName("com.skype.raider", "com.skype.raider.Main"));
             phoneIntent.addFlags(Intent.FLAG_FROM_BACKGROUND);
             phoneIntent.putExtra("videocall", true);*/
-            Intent phoneIntent = new Intent("com.google.android.apps.tachyon.action.CALL");
+
+            // Google Duo
+            /*Intent phoneIntent = new Intent("com.google.android.apps.tachyon.action.CALL");
             phoneIntent.setPackage ("com.google.android.apps.tachyon");
             phoneIntent.setData(Uri.parse("tel:" + phoneNumber));
             phoneIntent.putExtra("com.google.android.apps.tachyon.extra.IS_AUDIO_ONLY", false);
             phoneIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            phoneIntent.addFlags(Intent.FLAG_FROM_BACKGROUND);
+            phoneIntent.addFlags(Intent.FLAG_FROM_BACKGROUND);*/
             if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED) {
                 Log.i(LOG_TAG, "Permission missing");
                 return;
             }
+            Intent phoneIntent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + phoneNumber));
+            phoneIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            phoneIntent.addFlags(Intent.FLAG_FROM_BACKGROUND);
+            phoneIntent.putExtra("videocall", true);
             startActivity(phoneIntent);
 
         } else {
